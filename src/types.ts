@@ -52,6 +52,8 @@ export interface AppData {
   codingProblems: CodingProblem[]
   systemTopics: SystemTopic[]
   systemResources: LinkItem[]
+  /** Stable task ids from the system design checklist (System design tab). */
+  systemChecklistDone: string[]
   sessionLog: SessionEntry[]
   darkMode: boolean
 }

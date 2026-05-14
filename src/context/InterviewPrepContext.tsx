@@ -29,6 +29,7 @@ type InterviewPrepContextValue = {
   addSystemTopic: (title: string) => void
   addSystemResource: (label: string, url: string) => void
   deleteSystemResource: (id: string) => void
+  toggleSystemChecklistTask: (taskId: string) => void
   readiness: {
     story: number
     coding: number
@@ -67,6 +68,9 @@ function loadStored(): AppData {
       systemResources: Array.isArray(p.systemResources)
         ? p.systemResources
         : base.systemResources,
+      systemChecklistDone: Array.isArray(p.systemChecklistDone)
+        ? p.systemChecklistDone.filter((x): x is string => typeof x === 'string')
+        : base.systemChecklistDone,
       sessionLog: Array.isArray(p.sessionLog) ? p.sessionLog : base.sessionLog,
     }
   } catch {
@@ -244,6 +248,19 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const toggleSystemChecklistTask = useCallback((taskId: string) => {
+    setData((d) => {
+      const done = d.systemChecklistDone ?? []
+      const has = done.includes(taskId)
+      return {
+        ...d,
+        systemChecklistDone: has
+          ? done.filter((x) => x !== taskId)
+          : [...done, taskId],
+      }
+    })
+  }, [])
+
   const readiness = useMemo(() => {
     const storyTotal = data.storyCards.length
     const storyConfident = data.storyCards.filter(
@@ -284,6 +301,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       addSystemTopic,
       addSystemResource,
       deleteSystemResource,
+      toggleSystemChecklistTask,
       readiness,
     }),
     [
@@ -304,6 +322,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       addSystemTopic,
       addSystemResource,
       deleteSystemResource,
+      toggleSystemChecklistTask,
       readiness,
     ],
   )
