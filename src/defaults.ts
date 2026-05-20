@@ -1,4 +1,11 @@
-import type { AppData, CodingProblem, LinkItem, StoryCard, SystemTopic } from './types'
+import type {
+  AppData,
+  CodingProblem,
+  LinkItem,
+  StoryCard,
+  StoryStatus,
+  SystemTopic,
+} from './types'
 
 const id = () => crypto.randomUUID()
 
@@ -127,9 +134,14 @@ COMMON MISTAKES TO AVOID:
 - Don't list technologies without context — always attach them to a problem you solved`
 
 function storyCard(
-  partial: Omit<StoryCard, 'id' | 'status' | 'notes'> & {
+  partial: Omit<
+    StoryCard,
+    'id' | 'status' | 'notes' | 'practiceCount' | 'lastPracticedDay'
+  > & {
     status?: StoryCard['status']
     notes?: string
+    practiceCount?: number
+    lastPracticedDay?: string | null
   },
 ): StoryCard {
   return {
@@ -139,19 +151,28 @@ function storyCard(
     title: partial.title,
     context: partial.context,
     star: partial.star,
+    practiceCount: partial.practiceCount ?? 0,
+    lastPracticedDay: partial.lastPracticedDay ?? null,
   }
 }
 
 function coding(
-  partial: Omit<CodingProblem, 'id' | 'status' | 'notes'> & {
-    status?: CodingProblem['status']
+  partial: Omit<
+    CodingProblem,
+    'id' | 'notes' | 'confidence' | 'practiceCount' | 'lastPracticedDay'
+  > & {
+    confidence?: StoryStatus
+    practiceCount?: number
+    lastPracticedDay?: string | null
     notes?: string
     lcSlug?: string
   },
 ): CodingProblem {
   return {
     id: id(),
-    status: partial.status ?? 'not_started',
+    confidence: partial.confidence ?? 'not_practiced',
+    practiceCount: partial.practiceCount ?? 0,
+    lastPracticedDay: partial.lastPracticedDay ?? null,
     notes: partial.notes ?? '',
     pattern: partial.pattern,
     title: partial.title,
@@ -216,18 +237,7 @@ export function createDefaultData(): AppData {
       link('GitHub', 'https://github.com/'),
     ],
     codingProblems: [
-      coding({
-        pattern: 'Stack',
-        title: 'Valid Parentheses',
-        lcNumber: 20,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Stack',
-        title: 'Generate Parentheses',
-        lcNumber: 22,
-        difficulty: 'Medium',
-      }),
+      /* NeetCode-style roadmap order in seed data; UI also sorts by topic + difficulty. */
       coding({
         pattern: 'Frequency Map',
         title: 'Two Sum',
@@ -239,6 +249,24 @@ export function createDefaultData(): AppData {
         title: 'Valid Anagram',
         lcNumber: 242,
         difficulty: 'Easy',
+      }),
+      coding({
+        pattern: 'String',
+        title: 'Reverse String',
+        lcNumber: 344,
+        difficulty: 'Easy',
+      }),
+      coding({
+        pattern: 'Two Pointers',
+        title: 'Container With Most Water',
+        lcNumber: 11,
+        difficulty: 'Medium',
+      }),
+      coding({
+        pattern: 'Two Pointers',
+        title: '3Sum',
+        lcNumber: 15,
+        difficulty: 'Medium',
       }),
       coding({
         pattern: 'Sliding Window',
@@ -253,15 +281,15 @@ export function createDefaultData(): AppData {
         difficulty: 'Hard',
       }),
       coding({
-        pattern: 'Two Pointers',
-        title: 'Container With Most Water',
-        lcNumber: 11,
-        difficulty: 'Medium',
+        pattern: 'Stack',
+        title: 'Valid Parentheses',
+        lcNumber: 20,
+        difficulty: 'Easy',
       }),
       coding({
-        pattern: 'Two Pointers',
-        title: '3Sum',
-        lcNumber: 15,
+        pattern: 'Stack',
+        title: 'Generate Parentheses',
+        lcNumber: 22,
         difficulty: 'Medium',
       }),
       coding({
@@ -279,21 +307,15 @@ export function createDefaultData(): AppData {
       }),
       coding({
         pattern: 'Recursion / Backtracking',
-        title: 'Subsets',
-        lcNumber: 78,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Recursion / Backtracking',
         title: 'Combination Sum',
         lcNumber: 39,
         difficulty: 'Medium',
       }),
       coding({
-        pattern: 'String',
-        title: 'Reverse String',
-        lcNumber: 344,
-        difficulty: 'Easy',
+        pattern: 'Recursion / Backtracking',
+        title: 'Subsets',
+        lcNumber: 78,
+        difficulty: 'Medium',
       }),
       coding({
         pattern: 'Dynamic Programming',
@@ -344,5 +366,6 @@ export function createDefaultData(): AppData {
       ),
     ],
     sessionLog: [],
+    practiceEvents: [],
   }
 }

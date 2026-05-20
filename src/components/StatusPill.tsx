@@ -1,14 +1,10 @@
-import type {
-  CodingStatus,
-  StoryStatus,
-  SystemStatus,
-} from '../types'
+import type { StoryStatus, SystemStatus } from '../types'
 
 export type StatusKind = 'story' | 'coding' | 'system'
 
 type Props = {
   kind: StatusKind
-  status: StoryStatus | CodingStatus | SystemStatus
+  status: StoryStatus | SystemStatus
   onClick: () => void
 }
 
@@ -28,12 +24,6 @@ function storyLabel(s: StoryStatus): string {
   return 'Confident'
 }
 
-function codingLabel(s: CodingStatus): string {
-  if (s === 'not_started') return 'Not Started'
-  if (s === 'attempted') return 'Attempted'
-  return 'Solved'
-}
-
 function systemLabel(s: SystemStatus): string {
   if (s === 'not_started') return 'Not Started'
   if (s === 'studied') return 'Studied'
@@ -46,12 +36,6 @@ function storyTone(s: StoryStatus): keyof typeof styles {
   return 'green'
 }
 
-function codingTone(s: CodingStatus): keyof typeof styles {
-  if (s === 'not_started') return 'gray'
-  if (s === 'attempted') return 'amber'
-  return 'green'
-}
-
 function systemTone(s: SystemStatus): keyof typeof styles {
   if (s === 'not_started') return 'gray'
   if (s === 'studied') return 'blue'
@@ -61,12 +45,9 @@ function systemTone(s: SystemStatus): keyof typeof styles {
 export function StatusPill({ kind, status, onClick }: Props) {
   let label: string
   let tone: keyof typeof styles
-  if (kind === 'story') {
+  if (kind === 'story' || kind === 'coding') {
     label = storyLabel(status as StoryStatus)
     tone = storyTone(status as StoryStatus)
-  } else if (kind === 'coding') {
-    label = codingLabel(status as CodingStatus)
-    tone = codingTone(status as CodingStatus)
   } else {
     label = systemLabel(status as SystemStatus)
     tone = systemTone(status as SystemStatus)

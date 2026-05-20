@@ -3,6 +3,7 @@ import { useInterviewPrep } from '../context/InterviewPrepContext'
 import { Collapsible } from '../components/Collapsible'
 import { cycleStory } from '../utils/statusCycles'
 import { StatusPill } from '../components/StatusPill'
+import { formatPracticeDay, localDayKey } from '../utils/localDay'
 import type { StoryCard } from '../types'
 
 export function StoryTab() {
@@ -31,6 +32,8 @@ export function StoryTab() {
       star: newStar.trim(),
       notes: newNotes.trim(),
       status: 'not_practiced',
+      practiceCount: 0,
+      lastPracticedDay: null,
     })
     setNewTitle('')
     setNewContext('')
@@ -50,7 +53,7 @@ export function StoryTab() {
       <div>
         <h1 className="app-page-heading">Story</h1>
         <p className="app-page-desc">
-          Positioning, STAR cards, and quick links.
+          Positioning, STAR cards, times practiced, and quick links.
         </p>
       </div>
 
@@ -86,23 +89,65 @@ export function StoryTab() {
                     }
                   />
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <StatusPill
-                    kind="story"
-                    status={card.status}
-                    onClick={() =>
-                      updateStoryCard(card.id, {
-                        status: cycleStory(card.status),
-                      })
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="app-btn-danger"
-                    onClick={() => deleteStoryCard(card.id)}
-                  >
-                    Delete
-                  </button>
+                <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex items-center gap-1.5 rounded-full border border-teal-200/90 bg-teal-50/80 px-1 py-0.5 dark:border-teal-800 dark:bg-teal-950/40">
+                      <span className="pl-2 text-xs font-medium text-teal-900 dark:text-teal-100">
+                        Times
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-teal-200/80 bg-white text-sm font-semibold text-teal-900 transition-colors hover:bg-teal-100/80 disabled:opacity-40 dark:border-teal-800 dark:bg-zinc-900 dark:text-teal-100 dark:hover:bg-teal-900/60"
+                        disabled={card.practiceCount <= 0}
+                        aria-label="Decrease times practiced"
+                        onClick={() =>
+                          updateStoryCard(card.id, {
+                            practiceCount: Math.max(0, card.practiceCount - 1),
+                          })
+                        }
+                      >
+                        -
+                      </button>
+                      <span className="min-w-[1.25rem] text-center text-xs font-semibold tabular-nums text-teal-950 dark:text-teal-50">
+                        {card.practiceCount}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-teal-200/80 bg-white text-sm font-semibold text-teal-900 transition-colors hover:bg-teal-100/80 dark:border-teal-800 dark:bg-zinc-900 dark:text-teal-100 dark:hover:bg-teal-900/60"
+                        aria-label="Log a practice (adds one, updates last practice day)"
+                        onClick={() =>
+                          updateStoryCard(card.id, {
+                            practiceCount: card.practiceCount + 1,
+                            lastPracticedDay: localDayKey(),
+                          })
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                    <StatusPill
+                      kind="story"
+                      status={card.status}
+                      onClick={() =>
+                        updateStoryCard(card.id, {
+                          status: cycleStory(card.status),
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="app-btn-danger"
+                      onClick={() => deleteStoryCard(card.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  <p className="text-right text-xs text-teal-800/80 dark:text-teal-400/85">
+                    Last practice:{' '}
+                    <span className="font-medium text-teal-950 dark:text-teal-100">
+                      {formatPracticeDay(card.lastPracticedDay)}
+                    </span>
+                  </p>
                 </div>
               </div>
               <div className="mt-3 space-y-3">

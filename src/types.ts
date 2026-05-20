@@ -1,7 +1,6 @@
 export const STORAGE_KEY = 'interview-prep-v1'
 
 export type StoryStatus = 'not_practiced' | 'needs_work' | 'confident'
-export type CodingStatus = 'not_started' | 'attempted' | 'solved'
 export type SystemStatus = 'not_started' | 'studied' | 'confident'
 export type Difficulty = 'Easy' | 'Medium' | 'Hard'
 
@@ -11,6 +10,9 @@ export interface StoryCard {
   context: string
   star: string
   status: StoryStatus
+  practiceCount: number
+  /** Local calendar day (YYYY-MM-DD) of last logged practice, or null */
+  lastPracticedDay: string | null
   notes: string
 }
 
@@ -28,7 +30,11 @@ export interface CodingProblem {
   lcSlug?: string
   lcNumber: number
   difficulty: Difficulty
-  status: CodingStatus
+  /** Same scale as story cards: not practiced → needs work → confident */
+  confidence: StoryStatus
+  practiceCount: number
+  /** Local calendar day (YYYY-MM-DD) of last logged practice, or null */
+  lastPracticedDay: string | null
   notes: string
 }
 
@@ -45,6 +51,23 @@ export interface SessionEntry {
   createdAt: string
 }
 
+export type PracticeTrack =
+  | 'story'
+  | 'coding'
+  | 'system'
+  | 'system_checklist'
+
+/** Auto-captured when you change a status pill or check a system-design task. */
+export interface PracticeEvent {
+  id: string
+  at: string
+  track: PracticeTrack
+  /** Card title, problem title, topic title, or checklist task label */
+  label: string
+  /** e.g. status transition */
+  detail?: string
+}
+
 export interface AppData {
   positioningStatement: string
   storyCards: StoryCard[]
@@ -54,6 +77,8 @@ export interface AppData {
   systemResources: LinkItem[]
   /** Stable task ids from the system design checklist (System design tab). */
   systemChecklistDone: string[]
+  /** Legacy manual notes; still counts toward streak if present. */
   sessionLog: SessionEntry[]
+  practiceEvents: PracticeEvent[]
   darkMode: boolean
 }

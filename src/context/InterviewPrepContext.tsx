@@ -8,14 +8,33 @@ import {
   type ReactNode,
 } from 'react'
 import { createDefaultData } from '../defaults'
-import { STORAGE_KEY, type AppData, type CodingProblem, type LinkItem, type SessionEntry, type StoryCard, type SystemTopic } from '../types'
+import { SYSTEM_CHECKLIST_TASK_LABELS } from '../data/systemChecklistLabels'
+import { normalizeCodingProblems } from '../utils/codingProblemNormalize'
+import { normalizeStoryCards } from '../utils/storyCardNormalize'
+import {
+  STORAGE_KEY,
+  type AppData,
+  type CodingProblem,
+  type LinkItem,
+  type PracticeEvent,
+  type StoryCard,
+  type SystemTopic,
+} from '../types'
+import {
+  labelStoryStatus,
+  labelSystemStatus,
+} from '../utils/practiceStatusLabels'
+import {
+  storyStatusWeight,
+  systemStatusWeight,
+  weightedReadinessPct,
+} from '../utils/readinessScore'
 
 type InterviewPrepContextValue = {
   data: AppData
   setData: React.Dispatch<React.SetStateAction<AppData>>
   updatePositioning: (value: string) => void
   setDarkMode: (value: boolean) => void
-  addSession: (text: string) => void
   updateStoryCard: (id: string, patch: Partial<StoryCard>) => void
   deleteStoryCard: (id: string) => void
   addStoryCard: (card: Omit<StoryCard, 'id'>) => void
@@ -23,7 +42,10 @@ type InterviewPrepContextValue = {
   deleteStoryLink: (id: string) => void
   updateCodingProblem: (id: string, patch: Partial<CodingProblem>) => void
   deleteCodingProblem: (id: string) => void
-  addCodingProblem: (p: Omit<CodingProblem, 'id' | 'status' | 'notes'>) => void
+  addCodingProblem: (
+    p: Pick<CodingProblem, 'title' | 'lcNumber' | 'pattern' | 'difficulty'> &
+      Partial<Pick<CodingProblem, 'lcSlug' | 'confidence' | 'practiceCount' | 'lastPracticedDay'>>,
+  ) => void
   updateSystemTopic: (id: string, patch: Partial<SystemTopic>) => void
   deleteSystemTopic: (id: string) => void
   addSystemTopic: (title: string) => void
@@ -57,11 +79,12 @@ function loadStored(): AppData {
           : base.positioningStatement,
       darkMode:
         typeof p.darkMode === 'boolean' ? p.darkMode : base.darkMode,
-      storyCards: Array.isArray(p.storyCards) ? p.storyCards : base.storyCards,
+      storyCards: normalizeStoryCards(p.storyCards, base.storyCards),
       storyLinks: Array.isArray(p.storyLinks) ? p.storyLinks : base.storyLinks,
-      codingProblems: Array.isArray(p.codingProblems)
-        ? p.codingProblems
-        : base.codingProblems,
+      codingProblems: normalizeCodingProblems(
+        p.codingProblems,
+        base.codingProblems,
+      ),
       systemTopics: Array.isArray(p.systemTopics)
         ? p.systemTopics
         : base.systemTopics,
@@ -72,15 +95,21 @@ function loadStored(): AppData {
         ? p.systemChecklistDone.filter((x): x is string => typeof x === 'string')
         : base.systemChecklistDone,
       sessionLog: Array.isArray(p.sessionLog) ? p.sessionLog : base.sessionLog,
+      practiceEvents: Array.isArray(p.practiceEvents)
+        ? p.practiceEvents.filter(
+            (e): e is PracticeEvent =>
+              e &&
+              typeof e === 'object' &&
+              typeof (e as PracticeEvent).id === 'string' &&
+              typeof (e as PracticeEvent).at === 'string' &&
+              typeof (e as PracticeEvent).track === 'string' &&
+              typeof (e as PracticeEvent).label === 'string',
+          )
+        : base.practiceEvents,
     }
   } catch {
     return base
   }
-}
-
-function pct(confident: number, total: number): number {
-  if (total === 0) return 0
-  return Math.round((confident / total) * 100)
 }
 
 export function InterviewPrepProvider({ children }: { children: ReactNode }) {
@@ -102,27 +131,50 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, darkMode: value }))
   }, [])
 
-  const addSession = useCallback((text: string) => {
-    const trimmed = text.trim()
-    if (!trimmed) return
-    const entry: SessionEntry = {
-      id: crypto.randomUUID(),
-      text: trimmed,
-      createdAt: new Date().toISOString(),
-    }
-    setData((d) => ({
-      ...d,
-      sessionLog: [entry, ...d.sessionLog].slice(0, 500),
-    }))
-  }, [])
-
   const updateStoryCard = useCallback((id: string, patch: Partial<StoryCard>) => {
-    setData((d) => ({
-      ...d,
-      storyCards: d.storyCards.map((c) =>
+    setData((d) => {
+      const prev = d.storyCards.find((c) => c.id === id)
+      const storyCards = d.storyCards.map((c) =>
         c.id === id ? { ...c, ...patch } : c,
-      ),
-    }))
+      )
+      if (!prev) {
+        return { ...d, storyCards }
+      }
+      const merged = storyCards.find((c) => c.id === id)!
+      const newEvents: PracticeEvent[] = []
+
+      if (patch.status !== undefined && patch.status !== prev.status) {
+        newEvents.push({
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          track: 'story',
+          label: merged.title.trim() || 'Story card',
+          detail: `${labelStoryStatus(prev.status)} → ${labelStoryStatus(patch.status)}`,
+        })
+      }
+
+      if (
+        patch.practiceCount !== undefined &&
+        patch.practiceCount > prev.practiceCount
+      ) {
+        newEvents.push({
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          track: 'story',
+          label: merged.title.trim() || 'Story card',
+          detail: `Practice logged (×${patch.practiceCount} total)`,
+        })
+      }
+
+      if (newEvents.length === 0) {
+        return { ...d, storyCards }
+      }
+      return {
+        ...d,
+        storyCards,
+        practiceEvents: [...newEvents, ...(d.practiceEvents ?? [])].slice(0, 500),
+      }
+    })
   }, [])
 
   const deleteStoryCard = useCallback((id: string) => {
@@ -137,7 +189,12 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       ...d,
       storyCards: [
         ...d.storyCards,
-        { ...card, id: crypto.randomUUID() },
+        {
+          ...card,
+          id: crypto.randomUUID(),
+          practiceCount: card.practiceCount ?? 0,
+          lastPracticedDay: card.lastPracticedDay ?? null,
+        },
       ],
     }))
   }, [])
@@ -160,12 +217,55 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
 
   const updateCodingProblem = useCallback(
     (id: string, patch: Partial<CodingProblem>) => {
-      setData((d) => ({
-        ...d,
-        codingProblems: d.codingProblems.map((p) =>
+      setData((d) => {
+        const prev = d.codingProblems.find((p) => p.id === id)
+        const codingProblems = d.codingProblems.map((p) =>
           p.id === id ? { ...p, ...patch } : p,
-        ),
-      }))
+        )
+        if (!prev) {
+          return { ...d, codingProblems }
+        }
+        const merged = codingProblems.find((p) => p.id === id)!
+        const newEvents: PracticeEvent[] = []
+
+        if (
+          patch.confidence !== undefined &&
+          patch.confidence !== prev.confidence
+        ) {
+          newEvents.push({
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            track: 'coding',
+            label: merged.title.trim() || 'Coding problem',
+            detail: `${labelStoryStatus(prev.confidence)} → ${labelStoryStatus(patch.confidence)}`,
+          })
+        }
+
+        if (
+          patch.practiceCount !== undefined &&
+          patch.practiceCount > prev.practiceCount
+        ) {
+          newEvents.push({
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            track: 'coding',
+            label: merged.title.trim() || 'Coding problem',
+            detail: `Practice logged (×${patch.practiceCount} total)`,
+          })
+        }
+
+        if (newEvents.length === 0) {
+          return { ...d, codingProblems }
+        }
+        return {
+          ...d,
+          codingProblems,
+          practiceEvents: [...newEvents, ...(d.practiceEvents ?? [])].slice(
+            0,
+            500,
+          ),
+        }
+      })
     },
     [],
   )
@@ -178,12 +278,19 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addCodingProblem = useCallback(
-    (p: Omit<CodingProblem, 'id' | 'status' | 'notes'>) => {
+    (
+      p: Pick<CodingProblem, 'title' | 'lcNumber' | 'pattern' | 'difficulty'> &
+        Partial<
+          Pick<CodingProblem, 'lcSlug' | 'confidence' | 'practiceCount' | 'lastPracticedDay'>
+        >,
+    ) => {
       const problem: CodingProblem = {
         ...p,
         id: crypto.randomUUID(),
-        status: 'not_started',
         notes: '',
+        confidence: p.confidence ?? 'not_practiced',
+        practiceCount: p.practiceCount ?? 0,
+        lastPracticedDay: p.lastPracticedDay ?? null,
       }
       setData((d) => ({
         ...d,
@@ -195,12 +302,28 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
 
   const updateSystemTopic = useCallback(
     (id: string, patch: Partial<SystemTopic>) => {
-      setData((d) => ({
-        ...d,
-        systemTopics: d.systemTopics.map((t) =>
+      setData((d) => {
+        const prev = d.systemTopics.find((t) => t.id === id)
+        const systemTopics = d.systemTopics.map((t) =>
           t.id === id ? { ...t, ...patch } : t,
-        ),
-      }))
+        )
+        if (!prev || patch.status === undefined || patch.status === prev.status) {
+          return { ...d, systemTopics }
+        }
+        const merged = systemTopics.find((t) => t.id === id)!
+        const entry: PracticeEvent = {
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          track: 'system',
+          label: merged.title.trim() || 'System design topic',
+          detail: `${labelSystemStatus(prev.status)} → ${labelSystemStatus(patch.status)}`,
+        }
+        return {
+          ...d,
+          systemTopics,
+          practiceEvents: [entry, ...(d.practiceEvents ?? [])].slice(0, 500),
+        }
+      })
     },
     [],
   )
@@ -252,32 +375,49 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     setData((d) => {
       const done = d.systemChecklistDone ?? []
       const has = done.includes(taskId)
+      const systemChecklistDone = has
+        ? done.filter((x) => x !== taskId)
+        : [...done, taskId]
+      if (has) {
+        return { ...d, systemChecklistDone }
+      }
+      const label =
+        SYSTEM_CHECKLIST_TASK_LABELS[taskId] ?? `Checklist task (${taskId})`
+      const entry: PracticeEvent = {
+        id: crypto.randomUUID(),
+        at: new Date().toISOString(),
+        track: 'system_checklist',
+        label,
+        detail: 'Checklist completed',
+      }
       return {
         ...d,
-        systemChecklistDone: has
-          ? done.filter((x) => x !== taskId)
-          : [...done, taskId],
+        systemChecklistDone,
+        practiceEvents: [entry, ...(d.practiceEvents ?? [])].slice(0, 500),
       }
     })
   }, [])
 
   const readiness = useMemo(() => {
     const storyTotal = data.storyCards.length
-    const storyConfident = data.storyCards.filter(
-      (c) => c.status === 'confident',
-    ).length
+    const storyScore = data.storyCards.reduce(
+      (sum, c) => sum + storyStatusWeight(c.status),
+      0,
+    )
     const codingTotal = data.codingProblems.length
-    const codingSolved = data.codingProblems.filter(
-      (p) => p.status === 'solved',
-    ).length
+    const codingScore = data.codingProblems.reduce(
+      (sum, p) => sum + storyStatusWeight(p.confidence),
+      0,
+    )
     const sysTotal = data.systemTopics.length
-    const sysConfident = data.systemTopics.filter(
-      (t) => t.status === 'confident',
-    ).length
+    const sysScore = data.systemTopics.reduce(
+      (sum, t) => sum + systemStatusWeight(t.status),
+      0,
+    )
     return {
-      story: pct(storyConfident, storyTotal),
-      coding: pct(codingSolved, codingTotal),
-      systemDesign: pct(sysConfident, sysTotal),
+      story: weightedReadinessPct(storyScore, storyTotal),
+      coding: weightedReadinessPct(codingScore, codingTotal),
+      systemDesign: weightedReadinessPct(sysScore, sysTotal),
     }
   }, [data.storyCards, data.codingProblems, data.systemTopics])
 
@@ -287,7 +427,6 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       setData,
       updatePositioning,
       setDarkMode,
-      addSession,
       updateStoryCard,
       deleteStoryCard,
       addStoryCard,
@@ -308,7 +447,6 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       data,
       updatePositioning,
       setDarkMode,
-      addSession,
       updateStoryCard,
       deleteStoryCard,
       addStoryCard,
