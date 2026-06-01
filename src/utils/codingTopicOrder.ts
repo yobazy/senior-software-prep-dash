@@ -1,12 +1,12 @@
 /**
- * NeetCode-style roadmap order: fundamentals first, then more advanced topics.
+ * NeetCode 150 roadmap order: fundamentals first, then more advanced topics.
  * Unknown `pattern` values sort after these, alphabetically among themselves.
  */
 const TOPIC_ORDER = new Map<string, number>([
   ['arrays & hashing', 0],
+  /** Legacy seed labels */
   ['frequency map', 0],
   ['hash map', 0],
-  /** Often grouped with arrays/hashing on NeetCode-style roadmaps */
   ['string', 0],
   ['two pointers', 1],
   ['sliding window', 2],
@@ -19,15 +19,16 @@ const TOPIC_ORDER = new Map<string, number>([
   ['tries', 7],
   ['heap', 8],
   ['heap / priority queue', 8],
-  ['intervals', 9],
+  ['backtracking', 9],
+  ['recursion / backtracking', 9],
   ['graph', 10],
   ['graphs', 10],
   ['advanced graphs', 11],
-  ['recursion / backtracking', 12],
-  ['backtracking', 12],
-  ['greedy', 13],
-  ['dynamic programming', 14],
-  ['2-d dynamic programming', 15],
+  ['1-d dynamic programming', 12],
+  ['dynamic programming', 12],
+  ['2-d dynamic programming', 13],
+  ['greedy', 14],
+  ['intervals', 15],
   ['math & geometry', 16],
   ['bit manipulation', 17],
 ])

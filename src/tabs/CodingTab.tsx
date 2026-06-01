@@ -4,6 +4,7 @@ import { cycleStory } from '../utils/statusCycles'
 import { leetCodeProblemUrl } from '../utils/lcUrl'
 import { formatPracticeDay, localDayKey } from '../utils/localDay'
 import { compareTopicPatterns } from '../utils/codingTopicOrder'
+import { storyStatusWeight, weightedReadinessPct } from '../utils/readinessScore'
 import type { CodingProblem, Difficulty, StoryStatus } from '../types'
 
 function difficultyClass(d: Difficulty): string {
@@ -36,6 +37,17 @@ function confidenceBadgeClass(s: StoryStatus): string {
   return `${base} border-emerald-400/90 bg-emerald-50 text-emerald-950 hover:bg-emerald-100/90 focus-visible:outline-emerald-600 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/45 dark:focus-visible:outline-emerald-400`
 }
 
+/** Row tint + left accent so status is visible without reading the badge. */
+function confidenceRowClass(s: StoryStatus): string {
+  const base =
+    'border-l-[3px] px-3 py-2.5 transition-colors motion-reduce:transition-none sm:px-4'
+  if (s === 'not_practiced')
+    return `${base} border-l-transparent hover:bg-teal-50/40 dark:hover:bg-zinc-800/40`
+  if (s === 'needs_work')
+    return `${base} border-l-amber-400 bg-amber-50/60 hover:bg-amber-50/90 dark:border-l-amber-500 dark:bg-amber-950/30 dark:hover:bg-amber-950/45`
+  return `${base} border-l-emerald-500 bg-emerald-50/65 hover:bg-emerald-50/90 dark:border-l-emerald-400 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/50`
+}
+
 function metaSep() {
   return (
     <span
@@ -61,6 +73,14 @@ export function CodingTab() {
   const [addProblemOpen, setAddProblemOpen] = useState(false)
   /** Which problem shows the notes editor (at most one). */
   const [notesEditorId, setNotesEditorId] = useState<string | null>(null)
+
+  const overallPct = useMemo(() => {
+    const score = data.codingProblems.reduce(
+      (sum, p) => sum + storyStatusWeight(p.confidence),
+      0,
+    )
+    return weightedReadinessPct(score, data.codingProblems.length)
+  }, [data.codingProblems])
 
   const groups = useMemo(() => {
     const map = new Map<string, CodingProblem[]>()
@@ -112,20 +132,30 @@ export function CodingTab() {
       <div>
         <h1 className="app-page-heading">Coding</h1>
         <p className="app-page-desc">
-          Roadmap-style topics (basics first), then easy → hard. Tap the status
-          badge to cycle confidence; log attempts and notes stay on the same
-          row as context.
+          <a
+            href="https://neetcode.io/practice?tab=neetcode150"
+            target="_blank"
+            rel="noreferrer"
+            className="app-link font-medium"
+          >
+            NeetCode 150
+          </a>{' '}
+          — {data.codingProblems.length} problems in roadmap order (easy → hard
+          within each topic). Overall {overallPct}% ready. Tap the status badge
+          to cycle confidence; log attempts and notes on each row.
         </p>
       </div>
 
       <div className="space-y-6">
         {groups.map(([pat, problems]) => {
+          const topicScore = problems.reduce(
+            (sum, p) => sum + storyStatusWeight(p.confidence),
+            0,
+          )
+          const topicPct = weightedReadinessPct(topicScore, problems.length)
           const confidentN = problems.filter(
             (p) => p.confidence === 'confident',
           ).length
-          const topicPct = problems.length
-            ? Math.round((confidentN / problems.length) * 100)
-            : 0
           return (
             <section
               key={pat}
@@ -143,19 +173,23 @@ export function CodingTab() {
                 <div className="mt-2.5 space-y-1">
                   <div className="flex items-center justify-between gap-3 text-xs font-medium text-teal-800 dark:text-teal-300/95">
                     <span className="text-teal-700/85 dark:text-teal-400/90">
-                      Confident in topic
+                      Topic progress
                     </span>
                     <span className="shrink-0 tabular-nums font-semibold">
-                      {confidentN}/{problems.length}
+                      {topicPct}%
+                      <span className="font-normal text-teal-700/80 dark:text-teal-400/85">
+                        {' '}
+                        · {confidentN}/{problems.length} confident
+                      </span>
                     </span>
                   </div>
                   <div
                     className="h-2 w-full overflow-hidden rounded-full bg-teal-200/80 dark:bg-teal-900/70"
                     role="progressbar"
                     aria-valuemin={0}
-                    aria-valuemax={problems.length}
-                    aria-valuenow={confidentN}
-                    aria-label={`${confidentN} of ${problems.length} problems marked confident in ${pat}`}
+                    aria-valuemax={100}
+                    aria-valuenow={topicPct}
+                    aria-label={`${topicPct}% progress in ${pat}, ${confidentN} of ${problems.length} confident`}
                   >
                     <div
                       className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-out dark:bg-emerald-400"
@@ -167,7 +201,7 @@ export function CodingTab() {
               <ul className="divide-y divide-teal-100 dark:divide-teal-900/45">
                 {problems.map((p) => (
                   <li key={p.id}>
-                    <div className="px-3 py-2.5 transition-colors hover:bg-teal-50/35 dark:hover:bg-zinc-800/35 sm:px-4">
+                    <div className={confidenceRowClass(p.confidence)}>
                       {/* Line 1: identity + status + practice / log */}
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">

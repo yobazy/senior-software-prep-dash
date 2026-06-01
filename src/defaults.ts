@@ -1,3 +1,5 @@
+import { NEETCODE_150_SEEDS } from './data/neetcode150'
+import { neetCodeCatalogId } from './utils/mergeNeetCode150'
 import type {
   AppData,
   CodingProblem,
@@ -5,6 +7,7 @@ import type {
   StoryCard,
   StoryStatus,
   SystemTopic,
+  SystemTopicTier,
 } from './types'
 
 const id = () => crypto.randomUUID()
@@ -183,9 +186,15 @@ function coding(
 }
 
 function topic(
-  partial: Omit<SystemTopic, 'id' | 'status' | 'notes'> & {
+  partial: Omit<
+    SystemTopic,
+    'id' | 'status' | 'notes' | 'practiceCount' | 'lastPracticedDay'
+  > & {
     status?: SystemTopic['status']
     notes?: string
+    practiceCount?: number
+    lastPracticedDay?: string | null
+    tier?: SystemTopicTier
   },
 ): SystemTopic {
   return {
@@ -193,7 +202,18 @@ function topic(
     status: partial.status ?? 'not_started',
     notes: partial.notes ?? '',
     title: partial.title,
+    practiceCount: partial.practiceCount ?? 0,
+    lastPracticedDay: partial.lastPracticedDay ?? null,
+    ...(partial.tier !== undefined ? { tier: partial.tier } : {}),
   }
+}
+
+function resource(
+  label: string,
+  url: string,
+  note?: string,
+): LinkItem {
+  return { id: id(), label, url, ...(note ? { note } : {}) }
 }
 
 function link(label: string, url: string): LinkItem {
@@ -236,133 +256,51 @@ export function createDefaultData(): AppData {
       link('Portfolio', 'https://'),
       link('GitHub', 'https://github.com/'),
     ],
-    codingProblems: [
-      /* NeetCode-style roadmap order in seed data; UI also sorts by topic + difficulty. */
-      coding({
-        pattern: 'Frequency Map',
-        title: 'Two Sum',
-        lcNumber: 1,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Frequency Map',
-        title: 'Valid Anagram',
-        lcNumber: 242,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'String',
-        title: 'Reverse String',
-        lcNumber: 344,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Two Pointers',
-        title: 'Container With Most Water',
-        lcNumber: 11,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Two Pointers',
-        title: '3Sum',
-        lcNumber: 15,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Sliding Window',
-        title: 'Longest Substring Without Repeating Characters',
-        lcNumber: 3,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Sliding Window',
-        title: 'Minimum Window Substring',
-        lcNumber: 76,
-        difficulty: 'Hard',
-      }),
-      coding({
-        pattern: 'Stack',
-        title: 'Valid Parentheses',
-        lcNumber: 20,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Stack',
-        title: 'Generate Parentheses',
-        lcNumber: 22,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Tree',
-        title: 'Max Depth of Binary Tree',
-        lcNumber: 104,
-        difficulty: 'Easy',
-        lcSlug: 'maximum-depth-of-binary-tree',
-      }),
-      coding({
-        pattern: 'Tree',
-        title: 'Invert Binary Tree',
-        lcNumber: 226,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Recursion / Backtracking',
-        title: 'Combination Sum',
-        lcNumber: 39,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Recursion / Backtracking',
-        title: 'Subsets',
-        lcNumber: 78,
-        difficulty: 'Medium',
-      }),
-      coding({
-        pattern: 'Dynamic Programming',
-        title: 'Climbing Stairs',
-        lcNumber: 70,
-        difficulty: 'Easy',
-      }),
-      coding({
-        pattern: 'Dynamic Programming',
-        title: 'Coin Change',
-        lcNumber: 322,
-        difficulty: 'Medium',
-      }),
-    ],
+    codingProblems: NEETCODE_150_SEEDS.map((seed) => ({
+      ...coding(seed),
+      id: neetCodeCatalogId(seed.lcNumber),
+    })),
     systemTopics: [
-      topic({ title: 'Rate limiter' }),
-      topic({ title: 'Authentication / OAuth system' }),
-      topic({ title: 'URL shortener' }),
-      topic({ title: 'Notification system' }),
-      topic({ title: 'API gateway' }),
-      topic({ title: 'Chat system' }),
-      topic({ title: 'Key-value store' }),
-      topic({ title: 'Distributed job scheduler' }),
-      topic({ title: 'Metrics and alerting platform' }),
-      topic({ title: 'Search autocomplete' }),
-      topic({ title: 'YouTube / Netflix' }),
-      topic({ title: 'Distributed transaction system' }),
-      topic({ title: 'Google Maps' }),
+      topic({ title: 'Rate limiter', tier: 1 }),
+      topic({ title: 'Authentication / OAuth system', tier: 1 }),
+      topic({ title: 'URL shortener', tier: 1 }),
+      topic({ title: 'Notification system', tier: 1 }),
+      topic({ title: 'API gateway', tier: 1 }),
+      topic({ title: 'Chat system', tier: 2 }),
+      topic({ title: 'Key-value store', tier: 2 }),
+      topic({ title: 'Distributed job scheduler', tier: 2 }),
+      topic({ title: 'Metrics and alerting platform', tier: 2 }),
+      topic({ title: 'Search autocomplete', tier: 2 }),
+      topic({ title: 'YouTube / Netflix', tier: 3 }),
+      topic({ title: 'Distributed transaction system', tier: 3 }),
+      topic({ title: 'Google Maps', tier: 3 }),
     ],
     systemChecklistDone: [],
     systemResources: [
-      link(
-        'Hello Interview',
-        'https://www.hellointerview.com/',
-      ),
-      link('ByteByteGo', 'https://bytebytego.com'),
-      link(
+      resource(
         'Alex Xu — System Design Interview Vol 1',
         'https://www.amazon.com/s?k=system+design+alex+xu+vol+1',
+        'Spine: do every Tier 1 and Tier 2 problem that has a chapter.',
       ),
-      link(
+      resource(
+        'Hello Interview',
+        'https://www.hellointerview.com/',
+        'Structured walkthroughs and AI mock interviews.',
+      ),
+      resource(
+        'ByteByteGo',
+        'https://bytebytego.com',
+        'Short concept videos during lunch.',
+      ),
+      resource(
         'Alex Xu — Vol 2',
         'https://www.amazon.com/s?k=system+design+alex+xu+vol+2',
+        'After the relevant Vol 1 chapters; harder depth.',
       ),
-      link(
+      resource(
         'Designing Data-Intensive Applications (Kleppmann)',
         'https://www.amazon.com/s?k=designing+data-intensive+applications',
+        'Parallel track over a few months — databases, queues, replication for real depth.',
       ),
     ],
     sessionLog: [],

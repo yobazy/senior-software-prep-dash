@@ -20,6 +20,8 @@ export interface LinkItem {
   id: string
   label: string
   url: string
+  /** Optional blurb (system design resources). */
+  note?: string
 }
 
 export interface CodingProblem {
@@ -38,11 +40,18 @@ export interface CodingProblem {
   notes: string
 }
 
+export type SystemTopicTier = 1 | 2 | 3
+
 export interface SystemTopic {
   id: string
   title: string
   status: SystemStatus
   notes: string
+  practiceCount: number
+  /** Local calendar day (YYYY-MM-DD) of last logged practice, or null */
+  lastPracticedDay: string | null
+  /** Study priority tier; optional for user-added topics */
+  tier?: SystemTopicTier
 }
 
 export interface SessionEntry {

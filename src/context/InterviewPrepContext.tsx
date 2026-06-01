@@ -8,9 +8,11 @@ import {
   type ReactNode,
 } from 'react'
 import { createDefaultData } from '../defaults'
-import { SYSTEM_CHECKLIST_TASK_LABELS } from '../data/systemChecklistLabels'
+import { SYSTEM_CHECKLIST_TASK_LABELS } from '../data/systemDesignChecklist'
 import { normalizeCodingProblems } from '../utils/codingProblemNormalize'
+import { mergeNeetCode150 } from '../utils/mergeNeetCode150'
 import { normalizeStoryCards } from '../utils/storyCardNormalize'
+import { normalizeSystemTopics } from '../utils/systemTopicNormalize'
 import {
   STORAGE_KEY,
   type AppData,
@@ -81,13 +83,11 @@ function loadStored(): AppData {
         typeof p.darkMode === 'boolean' ? p.darkMode : base.darkMode,
       storyCards: normalizeStoryCards(p.storyCards, base.storyCards),
       storyLinks: Array.isArray(p.storyLinks) ? p.storyLinks : base.storyLinks,
-      codingProblems: normalizeCodingProblems(
-        p.codingProblems,
+      codingProblems: mergeNeetCode150(
+        normalizeCodingProblems(p.codingProblems, []),
         base.codingProblems,
       ),
-      systemTopics: Array.isArray(p.systemTopics)
-        ? p.systemTopics
-        : base.systemTopics,
+      systemTopics: normalizeSystemTopics(p.systemTopics, base.systemTopics),
       systemResources: Array.isArray(p.systemResources)
         ? p.systemResources
         : base.systemResources,
@@ -307,21 +307,45 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
         const systemTopics = d.systemTopics.map((t) =>
           t.id === id ? { ...t, ...patch } : t,
         )
-        if (!prev || patch.status === undefined || patch.status === prev.status) {
+        if (!prev) {
           return { ...d, systemTopics }
         }
         const merged = systemTopics.find((t) => t.id === id)!
-        const entry: PracticeEvent = {
-          id: crypto.randomUUID(),
-          at: new Date().toISOString(),
-          track: 'system',
-          label: merged.title.trim() || 'System design topic',
-          detail: `${labelSystemStatus(prev.status)} → ${labelSystemStatus(patch.status)}`,
+        const newEvents: PracticeEvent[] = []
+
+        if (patch.status !== undefined && patch.status !== prev.status) {
+          newEvents.push({
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            track: 'system',
+            label: merged.title.trim() || 'System design topic',
+            detail: `${labelSystemStatus(prev.status)} → ${labelSystemStatus(patch.status)}`,
+          })
+        }
+
+        if (
+          patch.practiceCount !== undefined &&
+          patch.practiceCount > prev.practiceCount
+        ) {
+          newEvents.push({
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            track: 'system',
+            label: merged.title.trim() || 'System design topic',
+            detail: `Practice logged (×${patch.practiceCount} total)`,
+          })
+        }
+
+        if (newEvents.length === 0) {
+          return { ...d, systemTopics }
         }
         return {
           ...d,
           systemTopics,
-          practiceEvents: [entry, ...(d.practiceEvents ?? [])].slice(0, 500),
+          practiceEvents: [...newEvents, ...(d.practiceEvents ?? [])].slice(
+            0,
+            500,
+          ),
         }
       })
     },
@@ -347,6 +371,8 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
           title: t,
           status: 'not_started',
           notes: '',
+          practiceCount: 0,
+          lastPracticedDay: null,
         },
       ],
     }))
