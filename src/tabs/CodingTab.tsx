@@ -5,6 +5,12 @@ import { leetCodeProblemUrl } from '../utils/lcUrl'
 import { formatPracticeDay, localDayKey } from '../utils/localDay'
 import { compareTopicPatterns } from '../utils/codingTopicOrder'
 import { storyStatusWeight, weightedReadinessPct } from '../utils/readinessScore'
+import {
+  codingProblemListId,
+  suggestCodingProblems,
+  type CodingSuggestion,
+  type SuggestionReason,
+} from '../utils/suggestCodingProblems'
 import type { CodingProblem, Difficulty, StoryStatus } from '../types'
 
 function difficultyClass(d: Difficulty): string {
@@ -27,14 +33,37 @@ function confidenceLabel(s: StoryStatus): string {
   return 'Confident'
 }
 
-function confidenceBadgeClass(s: StoryStatus): string {
+function confidenceBadgeClass(s: StoryStatus, interactive = true): string {
   const base =
-    'shrink-0 cursor-pointer rounded-lg border px-2.5 py-0.5 text-xs font-semibold tracking-tight transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none'
+    'shrink-0 rounded-lg border px-2.5 py-0.5 text-xs font-semibold tracking-tight motion-reduce:transition-none'
+  const interactiveCls = interactive
+    ? ' cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+    : ''
   if (s === 'not_practiced')
-    return `${base} border-teal-300/90 bg-teal-100/90 text-teal-950 hover:bg-teal-200/70 focus-visible:outline-teal-600 dark:border-teal-700 dark:bg-teal-950/80 dark:text-teal-50 dark:hover:bg-teal-900/70 dark:focus-visible:outline-teal-400`
+    return `${base}${interactiveCls} border-teal-300/90 bg-teal-100/90 text-teal-950${interactive ? ' hover:bg-teal-200/70 focus-visible:outline-teal-600 dark:hover:bg-teal-900/70 dark:focus-visible:outline-teal-400' : ''} dark:border-teal-700 dark:bg-teal-950/80 dark:text-teal-50`
   if (s === 'needs_work')
-    return `${base} border-amber-400/90 bg-amber-50 text-amber-950 hover:bg-amber-100/90 focus-visible:outline-amber-500 dark:border-amber-600 dark:bg-amber-950/55 dark:text-amber-100 dark:hover:bg-amber-900/45 dark:focus-visible:outline-amber-400`
-  return `${base} border-emerald-400/90 bg-emerald-50 text-emerald-950 hover:bg-emerald-100/90 focus-visible:outline-emerald-600 dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900/45 dark:focus-visible:outline-emerald-400`
+    return `${base}${interactiveCls} border-amber-400/90 bg-amber-50 text-amber-950${interactive ? ' hover:bg-amber-100/90 focus-visible:outline-amber-500 dark:hover:bg-amber-900/45 dark:focus-visible:outline-amber-400' : ''} dark:border-amber-600 dark:bg-amber-950/55 dark:text-amber-100`
+  return `${base}${interactiveCls} border-emerald-400/90 bg-emerald-50 text-emerald-950${interactive ? ' hover:bg-emerald-100/90 focus-visible:outline-emerald-600 dark:hover:bg-emerald-900/45 dark:focus-visible:outline-emerald-400' : ''} dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100`
+}
+
+function suggestionReasonLabel(reason: SuggestionReason): string {
+  if (reason === 'up_next') return 'Up next'
+  if (reason === 'review') return 'Review'
+  return 'Up next'
+}
+
+function suggestionReasonChipClass(reason: SuggestionReason): string {
+  const base =
+    'shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide'
+  if (reason === 'review')
+    return `${base} border-amber-300/90 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100`
+  return `${base} border-teal-300/90 bg-teal-50 text-teal-900 dark:border-teal-700 dark:bg-teal-950/50 dark:text-teal-100`
+}
+
+function scrollToProblemInList(problemId: string) {
+  document
+    .getElementById(codingProblemListId(problemId))
+    ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 /** Row tint + left accent so status is visible without reading the badge. */
@@ -81,6 +110,11 @@ export function CodingTab() {
     )
     return weightedReadinessPct(score, data.codingProblems.length)
   }, [data.codingProblems])
+
+  const suggestions = useMemo(
+    () => suggestCodingProblems(data.codingProblems, 3),
+    [data.codingProblems],
+  )
 
   const groups = useMemo(() => {
     const map = new Map<string, CodingProblem[]>()
@@ -146,6 +180,16 @@ export function CodingTab() {
         </p>
       </div>
 
+      <SuggestedProblemsSection
+        suggestions={suggestions}
+        onLogAttempt={(p) =>
+          updateCodingProblem(p.id, {
+            practiceCount: p.practiceCount + 1,
+            lastPracticedDay: localDayKey(),
+          })
+        }
+      />
+
       <div className="space-y-6">
         {groups.map(([pat, problems]) => {
           const topicScore = problems.reduce(
@@ -200,7 +244,7 @@ export function CodingTab() {
               </div>
               <ul className="divide-y divide-teal-100 dark:divide-teal-900/45">
                 {problems.map((p) => (
-                  <li key={p.id}>
+                  <li key={p.id} id={codingProblemListId(p.id)}>
                     <div className={confidenceRowClass(p.confidence)}>
                       {/* Line 1: identity + status + practice / log */}
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -399,5 +443,99 @@ export function CodingTab() {
         </button>
       )}
     </div>
+  )
+}
+
+function SuggestedProblemsSection({
+  suggestions,
+  onLogAttempt,
+}: {
+  suggestions: CodingSuggestion[]
+  onLogAttempt: (p: CodingProblem) => void
+}) {
+  return (
+    <section className="app-card space-y-4" aria-labelledby="coding-suggestions-heading">
+      <div>
+        <h2 id="coding-suggestions-heading" className="app-section-heading">
+          Suggested for you
+        </h2>
+        <p className="mt-1 text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">
+          Up next on the roadmap, plus problems that need another pass.
+        </p>
+      </div>
+
+      {suggestions.length === 0 ? (
+        <p className="text-sm leading-relaxed text-teal-800/95 dark:text-teal-200/90">
+          All tracked problems are confident — pick any from the list below for a
+          refresh.
+        </p>
+      ) : (
+        <ul className="divide-y divide-teal-100 dark:divide-teal-900/45">
+          {suggestions.map(({ problem: p, reason }) => (
+            <li key={p.id} className="py-3 first:pt-0 last:pb-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                <span className={suggestionReasonChipClass(reason)}>
+                  {suggestionReasonLabel(reason)}
+                </span>
+                <span className="shrink-0 rounded bg-teal-100/90 px-1 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-teal-800 dark:bg-teal-950/80 dark:text-teal-300">
+                  {p.lcNumber}
+                </span>
+                <a
+                  href={leetCodeProblemUrl(p)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="app-link min-w-0 text-sm font-semibold leading-snug"
+                >
+                  {p.title}
+                </a>
+                <span
+                  className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${difficultyClass(p.difficulty)}`}
+                >
+                  {p.difficulty}
+                </span>
+                <span
+                  className={confidenceBadgeClass(p.confidence, false)}
+                  aria-label={`Confidence: ${confidenceLabel(p.confidence)}`}
+                >
+                  {confidenceLabel(p.confidence)}
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-teal-700/90 dark:text-teal-400/85">
+                <span className="font-medium text-teal-800 dark:text-teal-300/90">
+                  {p.pattern}
+                </span>
+                {reason === 'review' ? (
+                  <>
+                    {metaSep()}
+                    <span>
+                      Last{' '}
+                      <span className="font-semibold text-teal-900 dark:text-teal-200">
+                        {formatPracticeDay(p.lastPracticedDay)}
+                      </span>
+                    </span>
+                  </>
+                ) : null}
+                <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
+                  <button
+                    type="button"
+                    className="app-btn-secondary py-1.5 text-xs"
+                    onClick={() => onLogAttempt(p)}
+                  >
+                    Log attempt
+                  </button>
+                  <button
+                    type="button"
+                    className="app-btn-ghost py-1.5 text-xs"
+                    onClick={() => scrollToProblemInList(p.id)}
+                  >
+                    Open in list
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
