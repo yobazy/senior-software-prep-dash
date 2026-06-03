@@ -1,8 +1,15 @@
-import type { StoryStatus, SystemStatus } from '../types'
+import type { CodingConfidence, StoryStatus, SystemStatus } from '../types'
 
 export function cycleStory(s: StoryStatus): StoryStatus {
   if (s === 'not_practiced') return 'needs_work'
   if (s === 'needs_work') return 'confident'
+  return 'not_practiced'
+}
+
+export function cycleCoding(s: CodingConfidence): CodingConfidence {
+  if (s === 'not_practiced') return 'needs_work'
+  if (s === 'needs_work') return 'almost_there'
+  if (s === 'almost_there') return 'confident'
   return 'not_practiced'
 }
 

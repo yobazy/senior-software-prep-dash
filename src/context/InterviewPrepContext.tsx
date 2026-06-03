@@ -11,6 +11,12 @@ import { createDefaultData } from '../defaults'
 import { SYSTEM_CHECKLIST_TASK_LABELS } from '../data/systemDesignChecklist'
 import { normalizeCodingProblems } from '../utils/codingProblemNormalize'
 import { mergeNeetCode150 } from '../utils/mergeNeetCode150'
+import {
+  codingProgressScore,
+  listRecoverySnapshots,
+  overlayCodingProgress,
+  STORAGE_BACKUP_KEY,
+} from '../utils/storageRecovery'
 import { normalizeStoryCards } from '../utils/storyCardNormalize'
 import { normalizeSystemTopics } from '../utils/systemTopicNormalize'
 import {
@@ -23,10 +29,12 @@ import {
   type SystemTopic,
 } from '../types'
 import {
+  labelCodingConfidence,
   labelStoryStatus,
   labelSystemStatus,
 } from '../utils/practiceStatusLabels'
 import {
+  codingConfidenceWeight,
   storyStatusWeight,
   systemStatusWeight,
   weightedReadinessPct,
@@ -59,17 +67,48 @@ type InterviewPrepContextValue = {
     coding: number
     systemDesign: number
   }
+  recoverySnapshots: () => ReturnType<
+    typeof import('../utils/storageRecovery').listRecoverySnapshots
+  >
+  restoreCodingFromStorageKey: (
+    key: string,
+  ) => { ok: boolean; message: string; restored: number }
 }
 
 const InterviewPrepContext = createContext<InterviewPrepContextValue | null>(
   null,
 )
 
+function loadCodingProblems(
+  rawProblems: unknown,
+  rawEvents: unknown,
+  catalog: CodingProblem[],
+): CodingProblem[] {
+  const normalized = normalizeCodingProblems(rawProblems, catalog)
+  const merged = mergeNeetCode150(normalized, catalog)
+  return overlayCodingProgress(
+    merged,
+    Array.isArray(rawProblems) ? rawProblems : [],
+    Array.isArray(rawEvents) ? rawEvents : [],
+  )
+}
+
 function loadStored(): AppData {
   const base = createDefaultData()
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return base
+    // Keep the best snapshot seen so a bad migration cannot erase progress.
+    try {
+      const prevBackup = localStorage.getItem(STORAGE_BACKUP_KEY)
+      const rawScore = codingProgressScore(raw)
+      const backupScore = prevBackup ? codingProgressScore(prevBackup) : -1
+      if (!prevBackup || rawScore > backupScore) {
+        localStorage.setItem(STORAGE_BACKUP_KEY, raw)
+      }
+    } catch {
+      /* ignore quota errors */
+    }
     const p = JSON.parse(raw) as Partial<AppData>
     if (!p || typeof p !== 'object') return base
     return {
@@ -83,8 +122,9 @@ function loadStored(): AppData {
         typeof p.darkMode === 'boolean' ? p.darkMode : base.darkMode,
       storyCards: normalizeStoryCards(p.storyCards, base.storyCards),
       storyLinks: Array.isArray(p.storyLinks) ? p.storyLinks : base.storyLinks,
-      codingProblems: mergeNeetCode150(
-        normalizeCodingProblems(p.codingProblems, []),
+      codingProblems: loadCodingProblems(
+        p.codingProblems,
+        p.practiceEvents,
         base.codingProblems,
       ),
       systemTopics: normalizeSystemTopics(p.systemTopics, base.systemTopics),
@@ -237,7 +277,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
             at: new Date().toISOString(),
             track: 'coding',
             label: merged.title.trim() || 'Coding problem',
-            detail: `${labelStoryStatus(prev.confidence)} → ${labelStoryStatus(patch.confidence)}`,
+            detail: `${labelCodingConfidence(prev.confidence)} → ${labelCodingConfidence(patch.confidence)}`,
           })
         }
 
@@ -432,7 +472,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     )
     const codingTotal = data.codingProblems.length
     const codingScore = data.codingProblems.reduce(
-      (sum, p) => sum + storyStatusWeight(p.confidence),
+      (sum, p) => sum + codingConfidenceWeight(p.confidence),
       0,
     )
     const sysTotal = data.systemTopics.length
@@ -446,6 +486,54 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       systemDesign: weightedReadinessPct(sysScore, sysTotal),
     }
   }, [data.storyCards, data.codingProblems, data.systemTopics])
+
+  const recoverySnapshots = useCallback(() => listRecoverySnapshots(), [])
+
+  const restoreCodingFromStorageKey = useCallback(
+    (key: string) => {
+      const raw = localStorage.getItem(key)
+      if (!raw) {
+        return { ok: false, message: `No data under "${key}".`, restored: 0 }
+      }
+      const score = codingProgressScore(raw)
+      if (score === 0) {
+        return {
+          ok: false,
+          message: `Snapshot "${key}" has no saved coding progress.`,
+          restored: 0,
+        }
+      }
+      let snap: Partial<AppData>
+      try {
+        snap = JSON.parse(raw) as Partial<AppData>
+      } catch {
+        return { ok: false, message: 'Invalid JSON in snapshot.', restored: 0 }
+      }
+
+      let restored = 0
+      setData((d) => {
+        const codingProblems = loadCodingProblems(
+          snap.codingProblems,
+          snap.practiceEvents,
+          d.codingProblems,
+        )
+        restored = codingProblems.filter(
+          (p) => p.confidence !== 'not_practiced' || p.practiceCount > 0,
+        ).length
+        const practiceEvents = Array.isArray(snap.practiceEvents)
+          ? snap.practiceEvents
+          : d.practiceEvents
+        return { ...d, codingProblems, practiceEvents }
+      })
+
+      return {
+        ok: true,
+        message: `Restored coding progress from "${key}" (${restored} problems with activity).`,
+        restored,
+      }
+    },
+    [],
+  )
 
   const value = useMemo(
     () => ({
@@ -468,6 +556,8 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       deleteSystemResource,
       toggleSystemChecklistTask,
       readiness,
+      recoverySnapshots,
+      restoreCodingFromStorageKey,
     }),
     [
       data,
@@ -488,6 +578,8 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       deleteSystemResource,
       toggleSystemChecklistTask,
       readiness,
+      recoverySnapshots,
+      restoreCodingFromStorageKey,
     ],
   )
 

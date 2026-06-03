@@ -5,7 +5,7 @@ import type {
   CodingProblem,
   LinkItem,
   StoryCard,
-  StoryStatus,
+  CodingConfidence,
   SystemTopic,
   SystemTopicTier,
 } from './types'
@@ -164,7 +164,7 @@ function coding(
     CodingProblem,
     'id' | 'notes' | 'confidence' | 'practiceCount' | 'lastPracticedDay'
   > & {
-    confidence?: StoryStatus
+    confidence?: CodingConfidence
     practiceCount?: number
     lastPracticedDay?: string | null
     notes?: string

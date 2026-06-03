@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useInterviewPrep } from '../context/InterviewPrepContext'
+import { STORAGE_BACKUP_KEY } from '../utils/storageRecovery'
 import { ProgressBar } from '../components/ProgressBar'
 import { buildPracticeDayGroups } from '../utils/practiceDayGroups'
 import { computeDayStreak } from '../utils/streak'
@@ -59,7 +60,17 @@ const bucketLabelClass: Record<'story' | 'coding' | 'system', string> = {
 }
 
 export function HomeTab() {
-  const { data, readiness } = useInterviewPrep()
+  const {
+    data,
+    readiness,
+    recoverySnapshots,
+    restoreCodingFromStorageKey,
+  } = useInterviewPrep()
+  const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null)
+  const snapshots = useMemo(() => recoverySnapshots(), [recoverySnapshots])
+  const codingActive = data.codingProblems.filter(
+    (p) => p.confidence !== 'not_practiced' || p.practiceCount > 0,
+  ).length
   const streak = computeDayStreak(
     data.practiceEvents ?? [],
     data.sessionLog ?? [],
@@ -107,6 +118,62 @@ export function HomeTab() {
           </span>
         </p>
       </section>
+
+      {(codingActive === 0 || recoveryMsg) && (
+        <section className="app-card space-y-3 border-amber-200/90 dark:border-amber-800/60">
+          <h2 className="app-section-heading">Recover coding progress</h2>
+          <p className="text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">
+            If coding statuses were reset, check other snapshots in this browser.
+            Story cards and system topics in your current save are not changed.
+          </p>
+          {snapshots.length === 0 ? (
+            <p className="text-sm text-teal-800/75 dark:text-teal-300/80">
+              No interview-prep keys found in local storage.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {snapshots.map((s) => (
+                <li
+                  key={s.key}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-teal-100/90 px-3 py-2 dark:border-teal-900/55"
+                >
+                  <span className="font-mono text-xs text-teal-900 dark:text-teal-100">
+                    {s.key}
+                    <span className="ml-2 font-sans text-teal-700/85 dark:text-teal-400/90">
+                      score {s.progressScore} · {s.practicedCount} practiced ·{' '}
+                      {s.eventCount} coding events
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="app-btn-secondary shrink-0 text-xs"
+                    disabled={s.progressScore === 0}
+                    onClick={() => {
+                      const r = restoreCodingFromStorageKey(s.key)
+                      setRecoveryMsg(r.message)
+                    }}
+                  >
+                    Restore
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {recoveryMsg ? (
+            <p
+              className={`text-sm ${recoveryMsg.startsWith('Restored') ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-900 dark:text-amber-200'}`}
+              role="status"
+            >
+              {recoveryMsg}
+            </p>
+          ) : null}
+          <p className="text-xs text-teal-700/80 dark:text-teal-400/85">
+            Tip: in DevTools → Application → Local Storage, also look for{' '}
+            <span className="font-mono">{STORAGE_BACKUP_KEY}</span> and any older
+            copies on another machine or browser profile.
+          </p>
+        </section>
+      )}
 
       <section className="app-card space-y-4">
         <div>

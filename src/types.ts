@@ -1,6 +1,11 @@
 export const STORAGE_KEY = 'interview-prep-v1'
 
 export type StoryStatus = 'not_practiced' | 'needs_work' | 'confident'
+export type CodingConfidence =
+  | 'not_practiced'
+  | 'needs_work'
+  | 'almost_there'
+  | 'confident'
 export type SystemStatus = 'not_started' | 'studied' | 'confident'
 export type Difficulty = 'Easy' | 'Medium' | 'Hard'
 
@@ -32,8 +37,8 @@ export interface CodingProblem {
   lcSlug?: string
   lcNumber: number
   difficulty: Difficulty
-  /** Same scale as story cards: not practiced → needs work → confident */
-  confidence: StoryStatus
+  /** not practiced → needs work → almost there → confident */
+  confidence: CodingConfidence
   practiceCount: number
   /** Local calendar day (YYYY-MM-DD) of last logged practice, or null */
   lastPracticedDay: string | null

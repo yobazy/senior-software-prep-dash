@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react'
 import { useInterviewPrep } from '../context/InterviewPrepContext'
-import { cycleStory } from '../utils/statusCycles'
+import { cycleCoding } from '../utils/statusCycles'
 import { leetCodeProblemUrl } from '../utils/lcUrl'
 import { formatPracticeDay, localDayKey } from '../utils/localDay'
 import { compareTopicPatterns } from '../utils/codingTopicOrder'
-import { storyStatusWeight, weightedReadinessPct } from '../utils/readinessScore'
+import {
+  codingConfidenceWeight,
+  weightedReadinessPct,
+} from '../utils/readinessScore'
 import {
   codingProblemListId,
   suggestCodingProblems,
   type CodingSuggestion,
   type SuggestionReason,
 } from '../utils/suggestCodingProblems'
-import type { CodingProblem, Difficulty, StoryStatus } from '../types'
+import type { CodingConfidence, CodingProblem, Difficulty } from '../types'
 
 function difficultyClass(d: Difficulty): string {
   if (d === 'Easy')
@@ -27,13 +30,14 @@ function difficultyRank(d: Difficulty): number {
   return 2
 }
 
-function confidenceLabel(s: StoryStatus): string {
+function confidenceLabel(s: CodingConfidence): string {
   if (s === 'not_practiced') return 'Not practiced'
   if (s === 'needs_work') return 'Needs work'
+  if (s === 'almost_there') return 'Almost there'
   return 'Confident'
 }
 
-function confidenceBadgeClass(s: StoryStatus, interactive = true): string {
+function confidenceBadgeClass(s: CodingConfidence, interactive = true): string {
   const base =
     'shrink-0 rounded-lg border px-2.5 py-0.5 text-xs font-semibold tracking-tight motion-reduce:transition-none'
   const interactiveCls = interactive
@@ -42,6 +46,8 @@ function confidenceBadgeClass(s: StoryStatus, interactive = true): string {
   if (s === 'not_practiced')
     return `${base}${interactiveCls} border-teal-300/90 bg-teal-100/90 text-teal-950${interactive ? ' hover:bg-teal-200/70 focus-visible:outline-teal-600 dark:hover:bg-teal-900/70 dark:focus-visible:outline-teal-400' : ''} dark:border-teal-700 dark:bg-teal-950/80 dark:text-teal-50`
   if (s === 'needs_work')
+    return `${base}${interactiveCls} border-rose-400/90 bg-rose-50 text-rose-950${interactive ? ' hover:bg-rose-100/90 focus-visible:outline-rose-500 dark:hover:bg-rose-900/45 dark:focus-visible:outline-rose-400' : ''} dark:border-rose-600 dark:bg-rose-950/55 dark:text-rose-100`
+  if (s === 'almost_there')
     return `${base}${interactiveCls} border-amber-400/90 bg-amber-50 text-amber-950${interactive ? ' hover:bg-amber-100/90 focus-visible:outline-amber-500 dark:hover:bg-amber-900/45 dark:focus-visible:outline-amber-400' : ''} dark:border-amber-600 dark:bg-amber-950/55 dark:text-amber-100`
   return `${base}${interactiveCls} border-emerald-400/90 bg-emerald-50 text-emerald-950${interactive ? ' hover:bg-emerald-100/90 focus-visible:outline-emerald-600 dark:hover:bg-emerald-900/45 dark:focus-visible:outline-emerald-400' : ''} dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100`
 }
@@ -67,12 +73,14 @@ function scrollToProblemInList(problemId: string) {
 }
 
 /** Row tint + left accent so status is visible without reading the badge. */
-function confidenceRowClass(s: StoryStatus): string {
+function confidenceRowClass(s: CodingConfidence): string {
   const base =
     'border-l-[3px] px-3 py-2.5 transition-colors motion-reduce:transition-none sm:px-4'
   if (s === 'not_practiced')
-    return `${base} border-l-transparent hover:bg-teal-50/40 dark:hover:bg-zinc-800/40`
+    return `${base} border-l-transparent hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40`
   if (s === 'needs_work')
+    return `${base} border-l-rose-500 bg-rose-50/60 hover:bg-rose-50/90 dark:border-l-rose-400 dark:bg-rose-950/30 dark:hover:bg-rose-950/45`
+  if (s === 'almost_there')
     return `${base} border-l-amber-400 bg-amber-50/60 hover:bg-amber-50/90 dark:border-l-amber-500 dark:bg-amber-950/30 dark:hover:bg-amber-950/45`
   return `${base} border-l-emerald-500 bg-emerald-50/65 hover:bg-emerald-50/90 dark:border-l-emerald-400 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/50`
 }
@@ -105,7 +113,7 @@ export function CodingTab() {
 
   const overallPct = useMemo(() => {
     const score = data.codingProblems.reduce(
-      (sum, p) => sum + storyStatusWeight(p.confidence),
+      (sum, p) => sum + codingConfidenceWeight(p.confidence),
       0,
     )
     return weightedReadinessPct(score, data.codingProblems.length)
@@ -193,7 +201,7 @@ export function CodingTab() {
       <div className="space-y-6">
         {groups.map(([pat, problems]) => {
           const topicScore = problems.reduce(
-            (sum, p) => sum + storyStatusWeight(p.confidence),
+            (sum, p) => sum + codingConfidenceWeight(p.confidence),
             0,
           )
           const topicPct = weightedReadinessPct(topicScore, problems.length)
@@ -268,11 +276,11 @@ export function CodingTab() {
                           <button
                             type="button"
                             className={confidenceBadgeClass(p.confidence)}
-                            title="Click to cycle: not practiced → needs work → confident"
+                            title="Click to cycle: not practiced → needs work → almost there → confident"
                             aria-label={`Confidence: ${confidenceLabel(p.confidence)}. Click to change.`}
                             onClick={() =>
                               updateCodingProblem(p.id, {
-                                confidence: cycleStory(p.confidence),
+                                confidence: cycleCoding(p.confidence),
                               })
                             }
                           >

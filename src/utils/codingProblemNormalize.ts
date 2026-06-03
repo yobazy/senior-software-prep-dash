@@ -1,8 +1,9 @@
-import type { CodingProblem, Difficulty, StoryStatus } from '../types'
+import type { CodingConfidence, CodingProblem, Difficulty } from '../types'
 
-const STORY_STATUSES = new Set<StoryStatus>([
+const CODING_CONFIDENCES = new Set<CodingConfidence>([
   'not_practiced',
   'needs_work',
+  'almost_there',
   'confident',
 ])
 
@@ -10,6 +11,28 @@ function parseLastDay(v: unknown): string | null {
   if (v === null) return null
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v
   return null
+}
+
+/** Map persisted `confidence` / `status` fields to the current confidence scale. */
+export function parseCodingConfidence(o: Record<string, unknown>): CodingConfidence {
+  if (
+    typeof o.confidence === 'string' &&
+    CODING_CONFIDENCES.has(o.confidence as CodingConfidence)
+  ) {
+    return o.confidence as CodingConfidence
+  }
+
+  if (typeof o.status === 'string') {
+    const s = o.status
+    if (CODING_CONFIDENCES.has(s as CodingConfidence)) {
+      return s as CodingConfidence
+    }
+    if (s === 'not_started') return 'not_practiced'
+    if (s === 'attempted') return 'needs_work'
+    if (s === 'solved') return 'confident'
+  }
+
+  return 'not_practiced'
 }
 
 /** Accepts persisted JSON (including legacy `status` solve tracking) and returns `CodingProblem`s. */
@@ -30,15 +53,14 @@ function normalizeOne(p: unknown): CodingProblem | null {
   if (!p || typeof p !== 'object') return null
   const o = p as Record<string, unknown>
 
-  const title = typeof o.title === 'string' ? o.title : ''
-  const pattern = typeof o.pattern === 'string' ? o.pattern : ''
   const lcNumber =
     typeof o.lcNumber === 'number' && Number.isFinite(o.lcNumber)
       ? o.lcNumber
       : NaN
-  if (!title.trim() || !pattern.trim() || !Number.isFinite(lcNumber)) {
-    return null
-  }
+  if (!Number.isFinite(lcNumber)) return null
+
+  const title = typeof o.title === 'string' ? o.title : ''
+  const pattern = typeof o.pattern === 'string' ? o.pattern : ''
 
   const difficulty: Difficulty =
     o.difficulty === 'Easy' ||
@@ -51,32 +73,20 @@ function normalizeOne(p: unknown): CodingProblem | null {
   const notes = typeof o.notes === 'string' ? o.notes : ''
   const lcSlug = typeof o.lcSlug === 'string' ? o.lcSlug : undefined
 
-  let confidence: StoryStatus = 'not_practiced'
+  const confidence = parseCodingConfidence(o)
+
   let practiceCount = 0
-
-  if (typeof o.confidence === 'string' && STORY_STATUSES.has(o.confidence as StoryStatus)) {
-    confidence = o.confidence as StoryStatus
-  } else if (
-    o.status === 'not_started' ||
-    o.status === 'attempted' ||
-    o.status === 'solved'
-  ) {
-    if (o.status === 'not_started') confidence = 'not_practiced'
-    else if (o.status === 'attempted') {
-      confidence = 'needs_work'
-      practiceCount = 1
-    } else {
-      confidence = 'confident'
-      practiceCount = 1
-    }
-  }
-
   if (
     typeof o.practiceCount === 'number' &&
     Number.isFinite(o.practiceCount) &&
     o.practiceCount >= 0
   ) {
     practiceCount = Math.floor(o.practiceCount)
+  } else if (
+    o.status === 'attempted' ||
+    o.status === 'solved'
+  ) {
+    practiceCount = 1
   }
 
   const lastPracticedDay = parseLastDay(o.lastPracticedDay)

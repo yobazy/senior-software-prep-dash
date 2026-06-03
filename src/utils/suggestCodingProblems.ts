@@ -68,8 +68,16 @@ export function suggestCodingProblems(
   if (upNext) add(upNext, 'up_next')
 
   const reviews = sorted
-    .filter((p) => p.confidence === 'needs_work')
-    .sort(compareStaleReview)
+    .filter(
+      (p) => p.confidence === 'needs_work' || p.confidence === 'almost_there',
+    )
+    .sort((a, b) => {
+      const rank = (c: CodingProblem['confidence']) =>
+        c === 'needs_work' ? 0 : 1
+      const pr = rank(a.confidence) - rank(b.confidence)
+      if (pr !== 0) return pr
+      return compareStaleReview(a, b)
+    })
   let reviewCount = 0
   for (const p of reviews) {
     if (picked.length >= limit || reviewCount >= 2) break
