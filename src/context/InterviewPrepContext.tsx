@@ -18,7 +18,7 @@ import {
   STORAGE_BACKUP_KEY,
 } from '../utils/storageRecovery'
 import { normalizeStoryCards } from '../utils/storyCardNormalize'
-import { normalizeSystemTopics } from '../utils/systemTopicNormalize'
+import { mergeSystemTopicCatalog, normalizeSystemTopics } from '../utils/systemTopicNormalize'
 import {
   STORAGE_KEY,
   type AppData,
@@ -127,7 +127,10 @@ function loadStored(): AppData {
         p.practiceEvents,
         base.codingProblems,
       ),
-      systemTopics: normalizeSystemTopics(p.systemTopics, base.systemTopics),
+      systemTopics: mergeSystemTopicCatalog(
+        normalizeSystemTopics(p.systemTopics, base.systemTopics),
+        base.systemTopics,
+      ),
       systemResources: Array.isArray(p.systemResources)
         ? p.systemResources
         : base.systemResources,

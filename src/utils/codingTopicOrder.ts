@@ -10,6 +10,8 @@ const TOPIC_ORDER = new Map<string, number>([
   ['string', 0],
   ['two pointers', 1],
   ['sliding window', 2],
+  ['string parsing', 2],
+  ['pattern matching', 3],
   ['stack', 3],
   ['binary search', 4],
   ['linked list', 5],

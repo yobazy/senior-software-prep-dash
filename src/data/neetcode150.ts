@@ -137,7 +137,7 @@ export const NEETCODE_150_SEEDS: NeetCode150Seed[] = [
   { pattern: '2-D Dynamic Programming', title: 'Distinct Subsequences', lcNumber: 115, difficulty: 'Hard' },
   { pattern: '2-D Dynamic Programming', title: 'Edit Distance', lcNumber: 72, difficulty: 'Hard' },
   { pattern: '2-D Dynamic Programming', title: 'Burst Balloons', lcNumber: 312, difficulty: 'Hard' },
-  { pattern: '2-D Dynamic Programming', title: 'Regular Expression Matching', lcNumber: 10, difficulty: 'Hard' },
+  { pattern: 'Pattern Matching', title: 'Regular Expression Matching', lcNumber: 10, difficulty: 'Hard' },
   { pattern: 'Greedy', title: 'Maximum Subarray', lcNumber: 53, difficulty: 'Medium' },
   { pattern: 'Greedy', title: 'Jump Game', lcNumber: 55, difficulty: 'Medium' },
   { pattern: 'Greedy', title: 'Jump Game II', lcNumber: 45, difficulty: 'Medium' },

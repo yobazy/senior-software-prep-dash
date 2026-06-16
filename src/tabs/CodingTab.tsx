@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useInterviewPrep } from '../context/InterviewPrepContext'
 import { cycleCoding } from '../utils/statusCycles'
 import { leetCodeProblemUrl } from '../utils/lcUrl'
@@ -15,6 +15,45 @@ import {
   type SuggestionReason,
 } from '../utils/suggestCodingProblems'
 import type { CodingConfidence, CodingProblem, Difficulty } from '../types'
+
+const DIFFICULTY_OPTIONS: Difficulty[] = ['Easy', 'Medium', 'Hard']
+const CONFIDENCE_OPTIONS: CodingConfidence[] = [
+  'not_practiced',
+  'needs_work',
+  'almost_there',
+  'confident',
+]
+
+function FilterChip({
+  pressed,
+  onClick,
+  children,
+}: {
+  pressed: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-200 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500/60 dark:focus-visible:outline-teal-400/50 ${
+        pressed
+          ? 'border-teal-600 bg-teal-600 text-white shadow-sm dark:border-teal-500 dark:bg-teal-500 dark:text-teal-950'
+          : 'border-teal-200 bg-white text-teal-900 hover:border-teal-400 hover:bg-teal-50 dark:border-teal-800 dark:bg-zinc-900 dark:text-teal-100 dark:hover:border-teal-600 dark:hover:bg-teal-950/60'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function toggleFilter<T>(selected: T[], value: T): T[] {
+  return selected.includes(value)
+    ? selected.filter((v) => v !== value)
+    : [...selected, value]
+}
 
 function difficultyClass(d: Difficulty): string {
   if (d === 'Easy')
@@ -110,6 +149,33 @@ export function CodingTab() {
   const [addProblemOpen, setAddProblemOpen] = useState(false)
   /** Which problem shows the notes editor (at most one). */
   const [notesEditorId, setNotesEditorId] = useState<string | null>(null)
+  const [selectedDifficulties, setSelectedDifficulties] = useState<Difficulty[]>(
+    [],
+  )
+  const [selectedConfidences, setSelectedConfidences] = useState<
+    CodingConfidence[]
+  >([])
+
+  const hasActiveFilters =
+    selectedDifficulties.length > 0 || selectedConfidences.length > 0
+
+  const filteredProblems = useMemo(() => {
+    return data.codingProblems.filter((p) => {
+      if (
+        selectedDifficulties.length > 0 &&
+        !selectedDifficulties.includes(p.difficulty)
+      ) {
+        return false
+      }
+      if (
+        selectedConfidences.length > 0 &&
+        !selectedConfidences.includes(p.confidence)
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [data.codingProblems, selectedDifficulties, selectedConfidences])
 
   const overallPct = useMemo(() => {
     const score = data.codingProblems.reduce(
@@ -126,7 +192,7 @@ export function CodingTab() {
 
   const groups = useMemo(() => {
     const map = new Map<string, CodingProblem[]>()
-    for (const p of data.codingProblems) {
+    for (const p of filteredProblems) {
       const list = map.get(p.pattern) ?? []
       list.push(p)
       map.set(p.pattern, list)
@@ -139,7 +205,7 @@ export function CodingTab() {
       })
     }
     return [...map.entries()].sort(([a], [b]) => compareTopicPatterns(a, b))
-  }, [data.codingProblems])
+  }, [filteredProblems])
 
   function addProblem(e: React.FormEvent) {
     e.preventDefault()
@@ -198,7 +264,103 @@ export function CodingTab() {
         }
       />
 
+      <section className="app-card space-y-4" aria-labelledby="coding-filters-heading">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="coding-filters-heading" className="app-section-heading">
+            Filters
+          </h2>
+          <button
+            type="button"
+            className="app-btn-secondary cursor-pointer text-xs disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              setSelectedDifficulties([])
+              setSelectedConfidences([])
+            }}
+            disabled={!hasActiveFilters}
+          >
+            Clear all
+          </button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="app-section-label">Difficulty</p>
+            <p className="mt-1 text-xs text-teal-800/80 dark:text-teal-300/80">
+              {selectedDifficulties.length === 0
+                ? 'All difficulties'
+                : 'Matching any selected level'}
+            </p>
+            <div
+              className="mt-2 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filter by difficulty"
+            >
+              {DIFFICULTY_OPTIONS.map((d) => (
+                <FilterChip
+                  key={d}
+                  pressed={selectedDifficulties.includes(d)}
+                  onClick={() =>
+                    setSelectedDifficulties((prev) => toggleFilter(prev, d))
+                  }
+                >
+                  {d}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="app-section-label">Confidence</p>
+            <p className="mt-1 text-xs text-teal-800/80 dark:text-teal-300/80">
+              {selectedConfidences.length === 0
+                ? 'All confidence levels'
+                : 'Matching any selected level'}
+            </p>
+            <div
+              className="mt-2 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filter by confidence"
+            >
+              {CONFIDENCE_OPTIONS.map((c) => (
+                <FilterChip
+                  key={c}
+                  pressed={selectedConfidences.includes(c)}
+                  onClick={() =>
+                    setSelectedConfidences((prev) => toggleFilter(prev, c))
+                  }
+                >
+                  {confidenceLabel(c)}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-teal-800/85 dark:text-teal-300/85">
+          Showing <strong>{filteredProblems.length}</strong> of{' '}
+          {data.codingProblems.length} problems
+          {hasActiveFilters ? (
+            <span className="text-teal-700 dark:text-teal-300"> (filtered)</span>
+          ) : null}
+        </p>
+      </section>
+
       <div className="space-y-6">
+        {groups.length === 0 && hasActiveFilters ? (
+          <p className="rounded-2xl border border-dashed border-teal-300/80 bg-white/60 px-4 py-8 text-center text-sm text-teal-800/90 dark:border-teal-800 dark:bg-zinc-900/40 dark:text-teal-300/90">
+            No problems match these filters.{' '}
+            <button
+              type="button"
+              className="font-semibold text-teal-700 underline-offset-2 hover:underline dark:text-teal-400"
+              onClick={() => {
+                setSelectedDifficulties([])
+                setSelectedConfidences([])
+              }}
+            >
+              Clear filters
+            </button>
+          </p>
+        ) : null}
         {groups.map(([pat, problems]) => {
           const topicScore = problems.reduce(
             (sum, p) => sum + codingConfidenceWeight(p.confidence),

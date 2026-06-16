@@ -17,6 +17,21 @@ function parseTier(v: unknown): SystemTopicTier | undefined {
   return undefined
 }
 
+export function mergeSystemTopicCatalog(
+  existing: SystemTopic[],
+  catalog: SystemTopic[],
+): SystemTopic[] {
+  const seen = new Set(existing.map((t) => t.title.trim().toLowerCase()))
+  const out = [...existing]
+  for (const seed of catalog) {
+    const key = seed.title.trim().toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(seed)
+  }
+  return out
+}
+
 export function normalizeSystemTopics(
   raw: unknown,
   fallback: SystemTopic[],

@@ -1,3 +1,4 @@
+import { CLIO_STRING_PREP_SEEDS } from './data/clioStringPrep'
 import { NEETCODE_150_SEEDS } from './data/neetcode150'
 import { neetCodeCatalogId } from './utils/mergeNeetCode150'
 import type {
@@ -256,7 +257,7 @@ export function createDefaultData(): AppData {
       link('Portfolio', 'https://'),
       link('GitHub', 'https://github.com/'),
     ],
-    codingProblems: NEETCODE_150_SEEDS.map((seed) => ({
+    codingProblems: [...NEETCODE_150_SEEDS, ...CLIO_STRING_PREP_SEEDS].map((seed) => ({
       ...coding(seed),
       id: neetCodeCatalogId(seed.lcNumber),
     })),
@@ -271,6 +272,7 @@ export function createDefaultData(): AppData {
       topic({ title: 'Distributed job scheduler', tier: 2 }),
       topic({ title: 'Metrics and alerting platform', tier: 2 }),
       topic({ title: 'Search autocomplete', tier: 2 }),
+      topic({ title: 'Google Drive / Dropbox', tier: 2 }),
       topic({ title: 'YouTube / Netflix', tier: 3 }),
       topic({ title: 'Distributed transaction system', tier: 3 }),
       topic({ title: 'Google Maps', tier: 3 }),
