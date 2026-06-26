@@ -68,9 +68,10 @@ export function HomeTab() {
   } = useInterviewPrep()
   const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null)
   const snapshots = useMemo(() => recoverySnapshots(), [recoverySnapshots])
-  const codingActive = data.codingProblems.filter(
+  const codingAttempted = data.codingProblems.filter(
     (p) => p.confidence !== 'not_practiced' || p.practiceCount > 0,
   ).length
+  const codingTotal = data.codingProblems.length
   const streak = computeDayStreak(
     data.practiceEvents ?? [],
     data.sessionLog ?? [],
@@ -98,7 +99,12 @@ export function HomeTab() {
           <ProgressBar label="Story" value={readiness.story} tone="story" />
         </div>
         <div className="app-card">
-          <ProgressBar label="Coding" value={readiness.coding} tone="coding" />
+          <ProgressBar
+            label="Coding"
+            value={readiness.coding}
+            tone="coding"
+            detail={`${codingAttempted}/${codingTotal} attempted`}
+          />
         </div>
         <div className="app-card">
           <ProgressBar
@@ -119,7 +125,7 @@ export function HomeTab() {
         </p>
       </section>
 
-      {(codingActive === 0 || recoveryMsg) && (
+      {(codingAttempted === 0 || recoveryMsg) && (
         <section className="app-card space-y-3 border-amber-200/90 dark:border-amber-800/60">
           <h2 className="app-section-heading">Recover coding progress</h2>
           <p className="text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">

@@ -10,18 +10,28 @@ type Props = {
   label: string
   value: number
   tone: Tone
+  detail?: string
 }
 
-export function ProgressBar({ label, value, tone }: Props) {
+export function ProgressBar({ label, value, tone, detail }: Props) {
   const clamped = Math.min(100, Math.max(0, value))
+  const ariaLabel = detail
+    ? `${label} readiness ${clamped}%, ${detail}`
+    : `${label} readiness ${clamped}%`
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm font-semibold text-teal-950 dark:text-teal-50">
           {label}
         </span>
-        <span className="text-sm tabular-nums text-teal-700/80 dark:text-teal-300/90">
+        <span className="shrink-0 text-sm tabular-nums font-semibold text-teal-700/80 dark:text-teal-300/90">
           {clamped}%
+          {detail ? (
+            <span className="font-normal text-teal-700/80 dark:text-teal-400/85">
+              {' '}
+              · {detail}
+            </span>
+          ) : null}
         </span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-teal-100 dark:bg-teal-950/80">
@@ -32,7 +42,7 @@ export function ProgressBar({ label, value, tone }: Props) {
           aria-valuenow={clamped}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`${label} readiness ${clamped}%`}
+          aria-label={ariaLabel}
         />
       </div>
     </div>
