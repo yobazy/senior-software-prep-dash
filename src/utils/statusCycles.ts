@@ -13,8 +13,18 @@ export function cycleCoding(s: CodingConfidence): CodingConfidence {
   return 'not_practiced'
 }
 
-export function cycleSystem(s: SystemStatus): SystemStatus {
+/**
+ * Cycle Not started → Studied → Confident → Not started.
+ * Pass `canConfident: false` to block Studied → Confident (caller should keep Studied).
+ */
+export function cycleSystem(
+  s: SystemStatus,
+  opts?: { canConfident?: boolean },
+): SystemStatus | 'blocked_confident' {
   if (s === 'not_started') return 'studied'
-  if (s === 'studied') return 'confident'
+  if (s === 'studied') {
+    if (opts?.canConfident === false) return 'blocked_confident'
+    return 'confident'
+  }
   return 'not_started'
 }

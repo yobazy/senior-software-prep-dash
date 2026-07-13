@@ -47,6 +47,20 @@ export interface CodingProblem {
 
 export type SystemTopicTier = 1 | 2 | 3
 
+/** How the attempt was run — pressure-tested kinds gate Confident. */
+export type SystemAttemptKind = 'solo' | 'solo_timed' | 'mock'
+
+export type SystemTopicKind = 'practice' | 'case_study'
+
+export interface SystemAttempt {
+  id: string
+  /** ISO timestamp */
+  at: string
+  kind: SystemAttemptKind
+  /** Local calendar day (YYYY-MM-DD) */
+  day: string
+}
+
 export interface SystemTopic {
   id: string
   title: string
@@ -57,6 +71,10 @@ export interface SystemTopic {
   lastPracticedDay: string | null
   /** Study priority tier; optional for user-added topics */
   tier?: SystemTopicTier
+  /** Defaults to practice; case studies are your own production systems. */
+  kind?: SystemTopicKind
+  /** Typed attempt log; practiceCount stays in sync with length. */
+  attempts?: SystemAttempt[]
 }
 
 export interface SessionEntry {

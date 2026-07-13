@@ -62,6 +62,33 @@ COMMON QUESTIONS IT ANSWERS:
 - "Tell me about a time you led a technical initiative"
 - "Describe a situation where you performed best"`
 
+const NOTES_CN_RAIL_SYSTEM = `CASE STUDY — rehearse under the same 45-min framework as canonical problems.
+
+REQUIREMENTS ANGLE:
+- Functional: secure, near-real-time exchange of rail ops data between Metrolinx and CN Rail (two orgs not designed to interoperate).
+- Non-functional: ~10–30s freshness, 99.9% uptime target, auditability, least-privilege external exposure.
+
+HIGH-LEVEL BOXES:
+- Azure Container Apps microservices (3 migrated + 2 net-new)
+- RabbitMQ: 20 queues, 10 consumers (event-driven backbone)
+- Azure API Management as the external-facing boundary
+- Application Insights + alerting standards you defined
+- GitHub Actions CI/CD (moved off manual on-prem)
+
+DEEP-DIVE HOOKS (pick two under pressure):
+1) Messaging: queue topology, consumer scaling, at-least-once vs exactly-once tradeoffs, backpressure / DLQs, why 20/10 split.
+2) Cross-org boundary: APIM auth, blast radius if CN is down or slow, idempotency on retries, what you monitor.
+3) Reliability: incident reduction (~25%), alerting thresholds, what "real operational consequences" means for SLOs.
+
+TRADEOFFS TO SAY OUT LOUD:
+- Polling interval vs freshness vs partner load
+- Queue count / consumer parallelism vs operational complexity
+- Managed Container Apps vs heavier k8s for this team/context
+- Observability standards early vs bolting them on after incidents
+
+NARRATIVE ONE-LINER:
+"I owned architecture through production monitoring for a secure real-time data exchange between two large organizations — containerized services on Azure, event-driven via RabbitMQ, APIM at the edge — and I set the observability bar that cut production incidents."`
+
 const NOTES_ENABLON = `WHAT IT IS:
 Integrated Enablon — a third-party EHS (Environmental Health & Safety) system — into Metrolinx's Azure Data Lake. The challenge: Enablon had no modern API surface, only legacy SOAP endpoints.
 
@@ -196,6 +223,7 @@ function topic(
     practiceCount?: number
     lastPracticedDay?: string | null
     tier?: SystemTopicTier
+    kind?: SystemTopic['kind']
   },
 ): SystemTopic {
   return {
@@ -206,6 +234,7 @@ function topic(
     practiceCount: partial.practiceCount ?? 0,
     lastPracticedDay: partial.lastPracticedDay ?? null,
     ...(partial.tier !== undefined ? { tier: partial.tier } : {}),
+    ...(partial.kind !== undefined ? { kind: partial.kind } : {}),
   }
 }
 
@@ -262,19 +291,30 @@ export function createDefaultData(): AppData {
       id: neetCodeCatalogId(seed.lcNumber),
     })),
     systemTopics: [
+      topic({
+        title: 'CN Rail cross-org data exchange',
+        tier: 1,
+        kind: 'case_study',
+        notes: NOTES_CN_RAIL_SYSTEM,
+      }),
+      // Tier 1 — fintech / identity / platform-weighted
       topic({ title: 'Rate limiter', tier: 1 }),
       topic({ title: 'Authentication / OAuth system', tier: 1 }),
-      topic({ title: 'URL shortener', tier: 1 }),
-      topic({ title: 'Notification system', tier: 1 }),
+      topic({ title: 'Payment / wallet system', tier: 1 }),
+      topic({ title: 'Fraud detection / risk scoring', tier: 1 }),
+      topic({ title: 'Distributed transaction system', tier: 1 }),
       topic({ title: 'API gateway', tier: 1 }),
+      topic({ title: 'Metrics and alerting platform', tier: 1 }),
+      // Tier 2 — pattern range
+      topic({ title: 'URL shortener', tier: 2 }),
+      topic({ title: 'Notification system', tier: 2 }),
       topic({ title: 'Chat system', tier: 2 }),
       topic({ title: 'Key-value store', tier: 2 }),
       topic({ title: 'Distributed job scheduler', tier: 2 }),
-      topic({ title: 'Metrics and alerting platform', tier: 2 }),
       topic({ title: 'Search autocomplete', tier: 2 }),
       topic({ title: 'Google Drive / Dropbox', tier: 2 }),
+      // Tier 3 — breadth
       topic({ title: 'YouTube / Netflix', tier: 3 }),
-      topic({ title: 'Distributed transaction system', tier: 3 }),
       topic({ title: 'Google Maps', tier: 3 }),
     ],
     systemChecklistDone: [],

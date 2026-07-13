@@ -6,6 +6,7 @@ type Props = {
   kind: StatusKind
   status: StoryStatus | SystemStatus
   onClick: () => void
+  title?: string
 }
 
 const base =
@@ -42,7 +43,7 @@ function systemTone(s: SystemStatus): keyof typeof styles {
   return 'green'
 }
 
-export function StatusPill({ kind, status, onClick }: Props) {
+export function StatusPill({ kind, status, onClick, title }: Props) {
   let label: string
   let tone: keyof typeof styles
   if (kind === 'story' || kind === 'coding') {
@@ -53,7 +54,7 @@ export function StatusPill({ kind, status, onClick }: Props) {
     tone = systemTone(status as SystemStatus)
   }
   return (
-    <button type="button" className={styles[tone]} onClick={onClick}>
+    <button type="button" className={styles[tone]} onClick={onClick} title={title}>
       {label}
     </button>
   )

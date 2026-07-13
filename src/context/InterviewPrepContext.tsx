@@ -26,6 +26,7 @@ import {
   type LinkItem,
   type PracticeEvent,
   type StoryCard,
+  type SystemAttemptKind,
   type SystemTopic,
 } from '../types'
 import {
@@ -39,6 +40,11 @@ import {
   systemStatusWeight,
   weightedReadinessPct,
 } from '../utils/readinessScore'
+import {
+  hasPressureTestedAttempt,
+  labelSystemAttemptKind,
+} from '../utils/systemAttempts'
+import { localDayKey } from '../utils/localDay'
 
 type InterviewPrepContextValue = {
   data: AppData
@@ -57,6 +63,7 @@ type InterviewPrepContextValue = {
       Partial<Pick<CodingProblem, 'lcSlug' | 'confidence' | 'practiceCount' | 'lastPracticedDay'>>,
   ) => void
   updateSystemTopic: (id: string, patch: Partial<SystemTopic>) => void
+  logSystemAttempt: (id: string, kind: SystemAttemptKind) => void
   deleteSystemTopic: (id: string) => void
   addSystemTopic: (title: string) => void
   addSystemResource: (label: string, url: string) => void
@@ -347,35 +354,44 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     (id: string, patch: Partial<SystemTopic>) => {
       setData((d) => {
         const prev = d.systemTopics.find((t) => t.id === id)
-        const systemTopics = d.systemTopics.map((t) =>
-          t.id === id ? { ...t, ...patch } : t,
-        )
         if (!prev) {
-          return { ...d, systemTopics }
+          return d
         }
+
+        let nextPatch = patch
+        if (patch.status === 'confident' && !hasPressureTestedAttempt(prev)) {
+          const rest = { ...patch }
+          delete rest.status
+          nextPatch = rest
+          if (Object.keys(nextPatch).length === 0) return d
+        }
+
+        const systemTopics = d.systemTopics.map((t) =>
+          t.id === id ? { ...t, ...nextPatch } : t,
+        )
         const merged = systemTopics.find((t) => t.id === id)!
         const newEvents: PracticeEvent[] = []
 
-        if (patch.status !== undefined && patch.status !== prev.status) {
+        if (nextPatch.status !== undefined && nextPatch.status !== prev.status) {
           newEvents.push({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
             track: 'system',
             label: merged.title.trim() || 'System design topic',
-            detail: `${labelSystemStatus(prev.status)} → ${labelSystemStatus(patch.status)}`,
+            detail: `${labelSystemStatus(prev.status)} → ${labelSystemStatus(nextPatch.status)}`,
           })
         }
 
         if (
-          patch.practiceCount !== undefined &&
-          patch.practiceCount > prev.practiceCount
+          nextPatch.practiceCount !== undefined &&
+          nextPatch.practiceCount > prev.practiceCount
         ) {
           newEvents.push({
             id: crypto.randomUUID(),
             at: new Date().toISOString(),
             track: 'system',
             label: merged.title.trim() || 'System design topic',
-            detail: `Practice logged (×${patch.practiceCount} total)`,
+            detail: `Practice logged (×${nextPatch.practiceCount} total)`,
           })
         }
 
@@ -394,6 +410,44 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  const logSystemAttempt = useCallback((id: string, kind: SystemAttemptKind) => {
+    setData((d) => {
+      const prev = d.systemTopics.find((t) => t.id === id)
+      if (!prev) return d
+      const day = localDayKey()
+      const attempt = {
+        id: crypto.randomUUID(),
+        at: new Date().toISOString(),
+        kind,
+        day,
+      }
+      const attempts = [...(prev.attempts ?? []), attempt]
+      const systemTopics = d.systemTopics.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              attempts,
+              practiceCount: attempts.length,
+              lastPracticedDay: day,
+            }
+          : t,
+      )
+      const merged = systemTopics.find((t) => t.id === id)!
+      const entry: PracticeEvent = {
+        id: crypto.randomUUID(),
+        at: attempt.at,
+        track: 'system',
+        label: merged.title.trim() || 'System design topic',
+        detail: `${labelSystemAttemptKind(kind)} attempt (×${attempts.length} total)`,
+      }
+      return {
+        ...d,
+        systemTopics,
+        practiceEvents: [entry, ...(d.practiceEvents ?? [])].slice(0, 500),
+      }
+    })
+  }, [])
 
   const deleteSystemTopic = useCallback((id: string) => {
     setData((d) => ({
@@ -553,6 +607,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       deleteCodingProblem,
       addCodingProblem,
       updateSystemTopic,
+      logSystemAttempt,
       deleteSystemTopic,
       addSystemTopic,
       addSystemResource,
@@ -575,6 +630,7 @@ export function InterviewPrepProvider({ children }: { children: ReactNode }) {
       deleteCodingProblem,
       addCodingProblem,
       updateSystemTopic,
+      logSystemAttempt,
       deleteSystemTopic,
       addSystemTopic,
       addSystemResource,
