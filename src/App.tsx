@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { CareerTab } from './tabs/CareerTab'
 import { CodingTab } from './tabs/CodingTab'
 import { HomeTab } from './tabs/HomeTab'
+import { LivePackTab } from './tabs/LivePackTab'
 import { StoryTab } from './tabs/StoryTab'
 import { SystemDesignTab } from './tabs/SystemDesignTab'
 
@@ -11,6 +12,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomeTab />} />
+        <Route path="live-pack" element={<LivePackTab />} />
         <Route path="story" element={<StoryTab />} />
         <Route path="coding" element={<CodingTab />} />
         <Route path="system-design" element={<SystemDesignTab />} />

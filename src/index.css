@@ -99,6 +99,10 @@
   .app-divide {
     @apply divide-y divide-teal-100 dark:divide-teal-900/50;
   }
+
+  .pack-spoken {
+    @apply rounded-xl bg-teal-950 px-4 py-3 text-[0.9375rem] leading-7 whitespace-pre-wrap text-teal-50 shadow-sm dark:bg-black dark:text-teal-50;
+  }
 }
 
 html,

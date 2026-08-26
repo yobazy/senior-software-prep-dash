@@ -1,6 +1,9 @@
 /**
  * Parses career-ops `applications.md` tracker table.
  * Mirrors dashboard/internal/data/career.go ParseApplications (table rows only).
+ *
+ * Columns are mapped by header name so an inserted Via/Location column does
+ * not shift Score/Status (career-ops #954).
  */
 
 const reReportLink = /\[(\d+)\]\(([^)]+)\)/
@@ -23,6 +26,39 @@ export interface CareerApplication {
   notes: string
 }
 
+/** Lowercased header cell → canonical field. Mirrors career.go trackerHeaderAliases. */
+const TRACKER_HEADER_ALIASES: Record<string, string> = {
+  '#': 'num',
+  num: 'num',
+  date: 'date',
+  company: 'company',
+  empresa: 'company',
+  via: 'via',
+  role: 'role',
+  puesto: 'role',
+  location: 'location',
+  score: 'score',
+  status: 'status',
+  pdf: 'pdf',
+  report: 'report',
+  notes: 'notes',
+}
+
+/** Original fixed layout in splitTableRow space (num=0 … notes=8). */
+const LEGACY_TRACKER_COLUMNS: Record<string, number> = {
+  num: 0,
+  date: 1,
+  company: 2,
+  role: 3,
+  score: 4,
+  status: 5,
+  pdf: 6,
+  report: 7,
+  notes: 8,
+}
+
+const REQUIRED_HEADER_FIELDS = ['num', 'company', 'role', 'score', 'status'] as const
+
 function splitTableRow(line: string): string[] {
   const trimmed = line.trim()
   if (trimmed.includes('\t')) {
@@ -35,8 +71,40 @@ function splitTableRow(line: string): string[] {
   return inner.split('|').map((p) => p.trim())
 }
 
+function detectTrackerColumns(lines: string[]): Record<string, number> | null {
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line.startsWith('|')) continue
+    const cells = splitTableRow(line)
+    const map: Record<string, number> = {}
+    cells.forEach((c, i) => {
+      const name = TRACKER_HEADER_ALIASES[c.toLowerCase()]
+      if (name) map[name] = i
+    })
+    if (REQUIRED_HEADER_FIELDS.every((k) => map[k] != null)) {
+      return map
+    }
+  }
+  return null
+}
+
+function resolveTrackerColumns(lines: string[]): Record<string, number> {
+  return detectTrackerColumns(lines) ?? LEGACY_TRACKER_COLUMNS
+}
+
+function cellAt(
+  fields: string[],
+  cols: Record<string, number>,
+  name: string,
+): string {
+  const idx = cols[name]
+  if (idx == null || idx < 0 || idx >= fields.length) return ''
+  return fields[idx] ?? ''
+}
+
 export function parseApplicationsMarkdown(content: string): CareerApplication[] {
   const lines = content.split('\n')
+  const cols = resolveTrackerColumns(lines)
   const apps: CareerApplication[] = []
   let rowIndex = 0
 
@@ -57,41 +125,37 @@ export function parseApplicationsMarkdown(content: string): CareerApplication[] 
 
     rowIndex += 1
     let trackerNumber = rowIndex
-    const n0 = parseInt(fields[0]!, 10)
+    const n0 = parseInt(cellAt(fields, cols, 'num'), 10)
     if (!Number.isNaN(n0)) trackerNumber = n0
 
-    const scoreRaw = fields[4] ?? ''
+    const scoreRaw = cellAt(fields, cols, 'score')
     let score: number | null = null
     const sm = reScoreValue.exec(scoreRaw)
     if (sm) score = parseFloat(sm[1]!)
 
-    const pdfCol = fields[6] ?? ''
+    const pdfCol = cellAt(fields, cols, 'pdf')
     const hasPdf = pdfCol.includes('\u2705')
 
     let reportNumber: string | null = null
     let reportPath: string | null = null
-    const reportCol = fields[7] ?? ''
-    const rm = reReportLink.exec(reportCol)
+    const rm = reReportLink.exec(cellAt(fields, cols, 'report'))
     if (rm) {
       reportNumber = rm[1]!
       reportPath = rm[2]!
     }
 
-    let notes = ''
-    if (fields.length > 8) notes = fields[8] ?? ''
-
     apps.push({
       number: trackerNumber,
-      date: fields[1] ?? '',
-      company: fields[2] ?? '',
-      role: fields[3] ?? '',
+      date: cellAt(fields, cols, 'date'),
+      company: cellAt(fields, cols, 'company'),
+      role: cellAt(fields, cols, 'role'),
       scoreRaw,
       score,
-      status: fields[5] ?? '',
+      status: cellAt(fields, cols, 'status'),
       hasPdf,
       reportNumber,
       reportPath,
-      notes,
+      notes: cellAt(fields, cols, 'notes'),
     })
   }
 

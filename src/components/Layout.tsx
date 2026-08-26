@@ -23,6 +23,14 @@ export function Layout() {
                 Home
               </NavLink>
               <NavLink
+                to="/live-pack"
+                className={({ isActive }) =>
+                  `app-nav-link ${isActive ? 'app-nav-link-active' : ''}`
+                }
+              >
+                Live pack
+              </NavLink>
+              <NavLink
                 to="/story"
                 className={({ isActive }) =>
                   `app-nav-link ${isActive ? 'app-nav-link-active' : ''}`
