@@ -6,10 +6,12 @@ export function Layout() {
 
   return (
     <div className="app-shell">
+      <div className="app-grain" aria-hidden />
       <header className="app-header">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-sm font-bold tracking-tight text-teal-950 dark:text-teal-50">
+            <span className="app-mark">
+              <span className="app-mark-dot" aria-hidden />
               Interview Prep
             </span>
             <nav className="flex flex-wrap items-center gap-1" aria-label="Primary">

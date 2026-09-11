@@ -54,9 +54,9 @@ const bucketTitle: Record<'story' | 'coding' | 'system', string> = {
 }
 
 const bucketLabelClass: Record<'story' | 'coding' | 'system', string> = {
-  story: 'text-teal-800 dark:text-teal-200/95',
-  coding: 'text-orange-900/95 dark:text-orange-200/95',
-  system: 'text-teal-950 dark:text-teal-50',
+  story: 'text-track-story',
+  coding: 'text-track-coding',
+  system: 'text-track-system',
 }
 
 export function HomeTab() {
@@ -117,9 +117,9 @@ export function HomeTab() {
 
       <section className="app-card">
         <h2 className="app-section-heading">Day streak</h2>
-        <p className="mt-3 text-3xl font-semibold tabular-nums text-teal-950 dark:text-teal-50">
+        <p className="app-metric mt-3 text-3xl">
           {streak}
-          <span className="ml-2 text-base font-normal text-teal-800/80 dark:text-teal-300/85">
+          <span className="ml-2 text-base font-normal text-ink-muted">
             consecutive days with practice recorded
           </span>
         </p>
@@ -128,12 +128,12 @@ export function HomeTab() {
       {(codingAttempted === 0 || recoveryMsg) && (
         <section className="app-card space-y-3 border-amber-200/90 dark:border-amber-800/60">
           <h2 className="app-section-heading">Recover coding progress</h2>
-          <p className="text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">
+          <p className="text-sm leading-relaxed text-ink-muted">
             If coding statuses were reset, check other snapshots in this browser.
             Story cards and system topics in your current save are not changed.
           </p>
           {snapshots.length === 0 ? (
-            <p className="text-sm text-teal-800/75 dark:text-teal-300/80">
+            <p className="text-sm text-ink-muted">
               No interview-prep keys found in local storage.
             </p>
           ) : (
@@ -141,11 +141,11 @@ export function HomeTab() {
               {snapshots.map((s) => (
                 <li
                   key={s.key}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-teal-100/90 px-3 py-2 dark:border-teal-900/55"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2"
                 >
-                  <span className="font-mono text-xs text-teal-900 dark:text-teal-100">
+                  <span className="font-mono text-xs text-ink">
                     {s.key}
-                    <span className="ml-2 font-sans text-teal-700/85 dark:text-teal-400/90">
+                    <span className="ml-2 font-sans text-ink-muted">
                       score {s.progressScore} · {s.practicedCount} practiced ·{' '}
                       {s.eventCount} coding events
                     </span>
@@ -173,7 +173,7 @@ export function HomeTab() {
               {recoveryMsg}
             </p>
           ) : null}
-          <p className="text-xs text-teal-700/80 dark:text-teal-400/85">
+          <p className="text-xs text-ink-muted">
             Tip: in DevTools → Application → Local Storage, also look for{' '}
             <span className="font-mono">{STORAGE_BACKUP_KEY}</span> and any older
             copies on another machine or browser profile.
@@ -184,7 +184,7 @@ export function HomeTab() {
       <section className="app-card space-y-4">
         <div>
           <h2 className="app-section-heading">Practice log</h2>
-          <p className="mt-2 text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             Built from story, coding, and system-design status updates, plus system
             checklist items you complete. Older manual dashboard notes still count
             toward your streak and appear under each day when present.
@@ -192,7 +192,7 @@ export function HomeTab() {
         </div>
         <ul className="app-divide">
           {dayGroups.length === 0 ? (
-            <li className="py-8 text-center text-sm text-teal-800/75 dark:text-teal-300/80">
+            <li className="py-8 text-center text-sm text-ink-muted">
               No practice logged yet. Update a status pill on Story, Coding, or System
               design, or check off a task on the system design plan.
             </li>
@@ -206,11 +206,11 @@ export function HomeTab() {
 
               return (
                 <li key={day.dayKey} className="py-4 text-left">
-                  <p className="text-sm font-semibold text-teal-950 dark:text-teal-50">
+                  <p className="text-sm font-semibold text-ink">
                     {formatDayHeading(day.dayKey)}
                   </p>
                   {!hasAuto && day.legacyNotes.length === 0 ? (
-                    <p className="mt-2 text-sm text-teal-800/75 dark:text-teal-300/80">
+                    <p className="mt-2 text-sm text-ink-muted">
                       No entries.
                     </p>
                   ) : null}
@@ -233,14 +233,14 @@ export function HomeTab() {
                           {list.map((ev) => (
                             <li
                               key={ev.id}
-                              className="text-sm leading-snug text-teal-900 dark:text-teal-100/95"
+                              className="text-sm leading-snug text-ink"
                             >
-                              <span className="tabular-nums text-xs text-teal-600 dark:text-teal-400/90">
+                              <span className="tabular-nums text-xs text-ink-muted">
                                 {formatClock(ev.at)}
                               </span>{' '}
                               <span className="font-medium">{ev.label}</span>
                               {ev.detail ? (
-                                <span className="text-teal-800/90 dark:text-teal-300/85">
+                                <span className="text-ink-muted">
                                   {' '}
                                   — {ev.detail}
                                 </span>
@@ -252,18 +252,18 @@ export function HomeTab() {
                     )
                   })}
                   {day.legacyNotes.length > 0 ? (
-                    <div className="mt-3 rounded-lg border border-teal-100/80 bg-teal-50/25 px-3 py-2 dark:border-teal-900/50 dark:bg-zinc-950/40">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-teal-700/85 dark:text-teal-400/80">
+                    <div className="mt-3 rounded-lg border border-line bg-accent-soft/40 px-3 py-2">
+                      <p className="app-section-label">
                         Earlier manual notes
                       </p>
                       <ul className="mt-2 space-y-2">
                         {day.legacyNotes.map((entry) => (
                           <li
                             key={entry.id}
-                            className="text-sm text-teal-900 dark:text-teal-100/90"
+                            className="text-sm text-ink"
                           >
                             <p>{entry.text}</p>
-                            <p className="mt-0.5 text-xs text-teal-700/75 dark:text-teal-400/80">
+                            <p className="mt-0.5 text-xs text-ink-muted">
                               {formatWhen(entry.createdAt)}
                             </p>
                           </li>

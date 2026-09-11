@@ -2,9 +2,106 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+  Semantic colors resolve through --app-* so light/dark swap in one place.
+  teal / orange / zinc scales are remapped so existing utilities pick up the
+  pine, clay, and ink palettes without rewriting every tab.
+*/
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji';
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --color-canvas: var(--app-canvas);
+  --color-surface: var(--app-surface);
+  --color-surface-raised: var(--app-surface-raised);
+  --color-ink: var(--app-ink);
+  --color-ink-muted: var(--app-ink-muted);
+  --color-line: var(--app-line);
+  --color-accent: var(--app-accent);
+  --color-accent-hover: var(--app-accent-hover);
+  --color-accent-soft: var(--app-accent-soft);
+  --color-accent-on: var(--app-accent-on);
+  --color-track-story: var(--app-track-story);
+  --color-track-coding: var(--app-track-coding);
+  --color-track-system: var(--app-track-system);
+  --color-focus: var(--app-focus);
+
+  --color-teal-50: #eef3f1;
+  --color-teal-100: #dde7e3;
+  --color-teal-200: #c5d4cf;
+  --color-teal-300: #9bb5ae;
+  --color-teal-400: #6d9188;
+  --color-teal-500: #3f7468;
+  --color-teal-600: #1b6b5c;
+  --color-teal-700: #175a4e;
+  --color-teal-800: #16463d;
+  --color-teal-900: #13352f;
+  --color-teal-950: #121c1a;
+
+  --color-orange-50: #fbf3ed;
+  --color-orange-100: #f5e4d6;
+  --color-orange-200: #e8c8ad;
+  --color-orange-300: #d9a47a;
+  --color-orange-400: #c97b4a;
+  --color-orange-500: #b85c32;
+  --color-orange-600: #9a4a28;
+  --color-orange-700: #7c3c22;
+  --color-orange-800: #5c2e1c;
+  --color-orange-900: #3f2116;
+  --color-orange-950: #27140d;
+
+  --color-zinc-50: #f6f5f2;
+  --color-zinc-100: #ebeae5;
+  --color-zinc-200: #d5d3cb;
+  --color-zinc-300: #b5b2a8;
+  --color-zinc-400: #8c8a82;
+  --color-zinc-500: #6b6a64;
+  --color-zinc-600: #52514c;
+  --color-zinc-700: #3d3e3b;
+  --color-zinc-800: #2a2d2b;
+  --color-zinc-900: #1c211f;
+  --color-zinc-950: #121614;
+}
+
+:root {
+  color-scheme: light;
+  --app-canvas: #f3f1ea;
+  --app-surface: #fbfaf6;
+  --app-surface-raised: #ffffff;
+  --app-ink: #17211f;
+  --app-ink-muted: #5a6864;
+  --app-line: #ddd8cc;
+  --app-accent: #1b6b5c;
+  --app-accent-hover: #15574b;
+  --app-accent-soft: #dce8e4;
+  --app-accent-on: #f7f4ec;
+  --app-track-story: #1b6b5c;
+  --app-track-coding: #b85c32;
+  --app-track-system: #3d4a6b;
+  --app-focus: #1b6b5c;
+  --app-shadow: 0 1px 2px rgb(23 33 31 / 0.04), 0 8px 24px rgb(23 33 31 / 0.06);
+  --app-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.dark {
+  color-scheme: dark;
+  --app-canvas: #121614;
+  --app-surface: #1a1f1d;
+  --app-surface-raised: #222926;
+  --app-ink: #e7ede9;
+  --app-ink-muted: #9aaba5;
+  --app-line: #2c3532;
+  --app-accent: #4aad9c;
+  --app-accent-hover: #6bc2b3;
+  --app-accent-soft: #1e3330;
+  --app-accent-on: #10201c;
+  --app-track-story: #4aad9c;
+  --app-track-coding: #e08a5a;
+  --app-track-system: #8b9bc4;
+  --app-focus: #4aad9c;
+  --app-shadow: 0 0 0 1px rgb(231 237 233 / 0.04),
+    0 12px 32px rgb(0 0 0 / 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -24,24 +121,62 @@
 ::view-transition-old(*),
 ::view-transition-new(*) {
   animation-duration: 0.25s;
-  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  animation-timing-function: var(--app-ease);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--app-canvas);
+  color: var(--app-ink);
+  font-feature-settings: 'ss01' on, 'cv11' on;
+}
+
+.app-grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+}
+
+.dark .app-grain {
+  opacity: 0.055;
 }
 
 @layer components {
   .app-shell {
-    @apply flex min-h-full flex-col bg-teal-50 text-teal-950 dark:bg-zinc-950 dark:text-teal-50;
+    @apply relative flex min-h-full flex-col bg-canvas text-ink;
   }
 
   .app-header {
-    @apply sticky top-0 z-10 border-b border-teal-200/70 bg-white/90 shadow-sm shadow-teal-900/5 backdrop-blur-md dark:border-teal-900/45 dark:bg-zinc-950/90 dark:shadow-none;
+    @apply sticky top-0 z-10 border-b border-line/80 bg-surface/85 backdrop-blur-md dark:bg-canvas/85;
+    box-shadow: var(--app-shadow);
+  }
+
+  .dark .app-header {
+    box-shadow: none;
+  }
+
+  .app-mark {
+    @apply mr-2 inline-flex items-center gap-2 text-[0.8125rem] font-bold tracking-tight text-ink;
+  }
+
+  .app-mark-dot {
+    @apply size-2 shrink-0 rounded-[3px] bg-accent;
   }
 
   .app-nav-link {
-    @apply cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-teal-800 transition-colors duration-200 hover:bg-teal-100/90 hover:text-teal-950 dark:text-teal-200/90 dark:hover:bg-teal-900/35 dark:hover:text-teal-50;
+    @apply cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition-colors duration-200 hover:bg-accent-soft hover:text-ink;
   }
 
   .app-nav-link-active {
-    @apply bg-teal-600 text-white shadow-sm hover:bg-teal-600 hover:text-white dark:bg-teal-600 dark:text-white dark:hover:bg-teal-600 dark:hover:text-white;
+    @apply bg-accent text-accent-on shadow-none hover:bg-accent hover:text-accent-on;
   }
 
   .app-main {
@@ -49,64 +184,74 @@
   }
 
   .app-page-heading {
-    @apply text-2xl font-semibold tracking-tight text-teal-950 sm:text-3xl dark:text-teal-50;
+    @apply text-2xl font-semibold tracking-[-0.03em] text-ink sm:text-3xl;
+    text-wrap: balance;
   }
 
   .app-page-desc {
-    @apply mt-1 max-w-2xl text-sm leading-relaxed text-teal-800/85 dark:text-teal-200/85;
+    @apply mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-muted;
   }
 
   .app-section-heading {
-    @apply text-sm font-semibold text-teal-950 dark:text-teal-50;
+    @apply text-sm font-semibold tracking-tight text-ink;
   }
 
   .app-section-label {
-    @apply text-xs font-semibold uppercase tracking-wider text-teal-700/80 dark:text-teal-400/90;
+    @apply text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-muted;
+  }
+
+  .app-metric {
+    @apply font-semibold tabular-nums tracking-tight text-ink;
+    font-variant-numeric: tabular-nums;
   }
 
   .app-card {
-    @apply rounded-2xl border border-teal-100 bg-white p-4 shadow-sm shadow-teal-900/[0.06] transition-shadow duration-200 hover:shadow-md hover:shadow-teal-900/10 motion-reduce:transition-none dark:border-teal-900/40 dark:bg-zinc-900/80 dark:shadow-none dark:hover:border-teal-800/55;
+    @apply rounded-2xl border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-200;
+    box-shadow: var(--app-shadow);
+  }
+
+  .app-card:hover {
+    border-color: color-mix(in srgb, var(--app-accent) 28%, var(--app-line));
+  }
+
+  .dark .app-card {
+    @apply bg-surface;
+    box-shadow: none;
   }
 
   .app-field {
-    @apply min-w-0 rounded-lg border border-teal-200/90 bg-white px-3 py-2 text-sm text-teal-950 outline-none transition-[color,box-shadow,border-color] duration-200 placeholder:text-teal-800/40 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/25 dark:border-teal-800/55 dark:bg-zinc-950 dark:text-teal-50 dark:placeholder:text-teal-300/40 dark:focus:border-teal-400 dark:focus:ring-teal-400/20;
+    @apply min-w-0 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink outline-none transition-[color,box-shadow,border-color] duration-200 placeholder:text-ink-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/25;
   }
 
   .app-btn-primary {
-    @apply cursor-pointer rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400 dark:focus-visible:outline-teal-400;
+    @apply cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-on transition-colors duration-200 hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .app-btn-accent {
-    @apply cursor-pointer rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-orange-500 dark:hover:bg-orange-400 dark:focus-visible:outline-orange-400;
+    @apply cursor-pointer rounded-lg bg-track-coding px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-track-coding disabled:cursor-not-allowed disabled:opacity-50 dark:text-orange-950;
   }
 
   .app-btn-secondary {
-    @apply cursor-pointer rounded-lg border border-teal-200 bg-white px-3 py-1.5 text-xs font-semibold text-teal-900 transition-colors duration-200 hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-500/40 dark:border-teal-800 dark:bg-zinc-900 dark:text-teal-100 dark:hover:bg-teal-950/60;
+    @apply cursor-pointer rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink transition-colors duration-200 hover:bg-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus/40;
   }
 
   .app-btn-ghost {
-    @apply cursor-pointer rounded-lg border border-teal-200/80 bg-white/80 px-4 py-2 text-sm font-semibold text-teal-900 transition-colors duration-200 hover:bg-teal-50 dark:border-teal-800 dark:bg-zinc-900/80 dark:text-teal-100 dark:hover:bg-teal-950/50;
+    @apply cursor-pointer rounded-lg border border-line/80 bg-surface/80 px-4 py-2 text-sm font-semibold text-ink transition-colors duration-200 hover:bg-accent-soft;
   }
 
   .app-btn-danger {
-    @apply cursor-pointer rounded-lg border border-teal-200/80 px-2 py-1 text-xs font-medium text-teal-900 transition-colors duration-200 hover:bg-red-50 hover:text-red-800 hover:border-red-200 dark:border-teal-800 dark:text-teal-200 dark:hover:border-red-900/60 dark:hover:bg-red-950/40 dark:hover:text-red-200;
+    @apply cursor-pointer rounded-lg border border-line px-2 py-1 text-xs font-medium text-ink transition-colors duration-200 hover:border-red-200 hover:bg-red-50 hover:text-red-800 dark:hover:border-red-900/60 dark:hover:bg-red-950/40 dark:hover:text-red-200;
   }
 
   .app-link {
-    @apply font-semibold text-teal-700 underline-offset-2 transition-colors duration-200 hover:text-teal-900 hover:underline dark:text-teal-300 dark:hover:text-teal-100;
+    @apply font-semibold text-accent underline-offset-2 transition-colors duration-200 hover:text-accent-hover hover:underline;
   }
 
   .app-divide {
-    @apply divide-y divide-teal-100 dark:divide-teal-900/50;
+    @apply divide-y divide-line;
   }
 
   .pack-spoken {
-    @apply rounded-xl bg-teal-950 px-4 py-3 text-[0.9375rem] leading-7 whitespace-pre-wrap text-teal-50 shadow-sm dark:bg-black dark:text-teal-50;
+    @apply rounded-xl bg-teal-950 px-4 py-3 text-[0.9375rem] leading-7 whitespace-pre-wrap text-teal-50;
   }
-}
-
-html,
-body,
-#root {
-  height: 100%;
 }

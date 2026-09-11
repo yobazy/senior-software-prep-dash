@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
   <title>Interview prep dashboard</title>
-  <rect width="32" height="32" rx="8" fill="#0d9488" />
-  <rect x="5" y="5" width="22" height="6" rx="1.75" fill="#f0fdfa" fill-opacity="0.95" />
-  <rect x="5" y="13" width="10" height="14" rx="1.75" fill="#f0fdfa" fill-opacity="0.92" />
-  <rect x="17" y="13" width="10" height="14" rx="1.75" fill="#ccfbf1" fill-opacity="0.9" />
-  <circle cx="25" cy="8" r="2.25" fill="#f97316" />
+  <rect width="32" height="32" rx="8" fill="#1B6B5C" />
+  <rect x="5" y="5" width="22" height="6" rx="1.75" fill="#F3F1EA" fill-opacity="0.95" />
+  <rect x="5" y="13" width="10" height="14" rx="1.75" fill="#F3F1EA" fill-opacity="0.92" />
+  <rect x="17" y="13" width="10" height="14" rx="1.75" fill="#DCE8E4" fill-opacity="0.95" />
+  <circle cx="25" cy="8" r="2.25" fill="#B85C32" />
 </svg>
