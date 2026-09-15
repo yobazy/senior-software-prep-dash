@@ -72,6 +72,10 @@ function normalizeOne(p: unknown): CodingProblem | null {
   const id = typeof o.id === 'string' ? o.id : crypto.randomUUID()
   const notes = typeof o.notes === 'string' ? o.notes : ''
   const lcSlug = typeof o.lcSlug === 'string' ? o.lcSlug : undefined
+  const companies = Array.isArray(o.companies)
+    ? o.companies.filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+    : undefined
+  const companyFrequency = parseCompanyFrequency(o.companyFrequency)
 
   const confidence = parseCodingConfidence(o)
 
@@ -98,9 +102,24 @@ function normalizeOne(p: unknown): CodingProblem | null {
     lcNumber,
     difficulty,
     lcSlug,
+    companies: companies && companies.length > 0 ? companies : undefined,
+    companyFrequency,
     confidence,
     practiceCount,
     lastPracticedDay,
     notes,
   }
+}
+
+function parseCompanyFrequency(
+  raw: unknown,
+): Record<string, number> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const out: Record<string, number> = {}
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      out[key] = value
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined
 }

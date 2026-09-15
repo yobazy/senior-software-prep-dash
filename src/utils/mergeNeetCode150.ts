@@ -16,6 +16,8 @@ function mergeUserOntoSeed(
     title: user.title.trim() ? user.title : seed.title,
     difficulty: user.difficulty ?? seed.difficulty,
     lcSlug: user.lcSlug ?? seed.lcSlug,
+    companies: seed.companies ?? user.companies,
+    companyFrequency: seed.companyFrequency ?? user.companyFrequency,
     confidence: user.confidence,
     practiceCount: user.practiceCount,
     lastPracticedDay: user.lastPracticedDay,

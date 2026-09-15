@@ -37,6 +37,10 @@ export interface CodingProblem {
   lcSlug?: string
   lcNumber: number
   difficulty: Difficulty
+  /** Companies that have this problem on their interview list. */
+  companies?: string[]
+  /** Company name → share of recent interviews that asked this problem (0–100). */
+  companyFrequency?: Record<string, number>
   /** not practiced → needs work → almost there → confident */
   confidence: CodingConfidence
   practiceCount: number

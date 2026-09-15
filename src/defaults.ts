@@ -1,4 +1,5 @@
 import { CLIO_STRING_PREP_SEEDS } from './data/clioStringPrep'
+import { applyCompanyQuestionTags } from './data/companyQuestions'
 import { NEETCODE_150_SEEDS } from './data/neetcode150'
 import { neetCodeCatalogId } from './utils/mergeNeetCode150'
 import type {
@@ -286,10 +287,12 @@ export function createDefaultData(): AppData {
       link('Portfolio', 'https://'),
       link('GitHub', 'https://github.com/'),
     ],
-    codingProblems: [...NEETCODE_150_SEEDS, ...CLIO_STRING_PREP_SEEDS].map((seed) => ({
-      ...coding(seed),
-      id: neetCodeCatalogId(seed.lcNumber),
-    })),
+    codingProblems: applyCompanyQuestionTags(
+      [...NEETCODE_150_SEEDS, ...CLIO_STRING_PREP_SEEDS].map((seed) => ({
+        ...coding(seed),
+        id: neetCodeCatalogId(seed.lcNumber),
+      })),
+    ),
     systemTopics: [
       topic({
         title: 'CN Rail cross-org data exchange',

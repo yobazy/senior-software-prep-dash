@@ -14,6 +14,13 @@ import {
   type CodingSuggestion,
   type SuggestionReason,
 } from '../utils/suggestCodingProblems'
+import {
+  CODING_COMPANIES,
+  formatFrequencyPct,
+  maxCompanyFrequency,
+  problemHasCompany,
+  type CodingCompany,
+} from '../data/companyQuestions'
 import type { CodingConfidence, CodingProblem, Difficulty } from '../types'
 
 const DIFFICULTY_OPTIONS: Difficulty[] = ['Easy', 'Medium', 'Hard']
@@ -91,6 +98,32 @@ function confidenceBadgeClass(s: CodingConfidence, interactive = true): string {
   return `${base}${interactiveCls} border-emerald-400/90 bg-emerald-50 text-emerald-950${interactive ? ' hover:bg-emerald-100/90 focus-visible:outline-emerald-600 dark:hover:bg-emerald-900/45 dark:focus-visible:outline-emerald-400' : ''} dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-100`
 }
 
+function CompanyTags({ problem }: { problem: CodingProblem }) {
+  const companies = problem.companies
+  if (!companies || companies.length === 0) return null
+  return (
+    <>
+      {companies.map((company) => {
+        const freq = problem.companyFrequency?.[company]
+        return (
+          <span
+            key={company}
+            className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-orange-950 dark:border-orange-800 dark:bg-orange-950/45 dark:text-orange-100"
+            title={
+              freq != null
+                ? `${company} · asked in ${formatFrequencyPct(freq)} of recent interviews`
+                : company
+            }
+          >
+            {company}
+            {freq != null ? ` ${formatFrequencyPct(freq)}` : ''}
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
 function suggestionReasonLabel(reason: SuggestionReason): string {
   if (reason === 'up_next') return 'Up next'
   if (reason === 'review') return 'Review'
@@ -155,9 +188,14 @@ export function CodingTab() {
   const [selectedConfidences, setSelectedConfidences] = useState<
     CodingConfidence[]
   >([])
+  const [selectedCompanies, setSelectedCompanies] = useState<CodingCompany[]>(
+    [],
+  )
 
   const hasActiveFilters =
-    selectedDifficulties.length > 0 || selectedConfidences.length > 0
+    selectedDifficulties.length > 0 ||
+    selectedConfidences.length > 0 ||
+    selectedCompanies.length > 0
 
   const filteredProblems = useMemo(() => {
     return data.codingProblems.filter((p) => {
@@ -173,9 +211,17 @@ export function CodingTab() {
       ) {
         return false
       }
+      if (!problemHasCompany(p, selectedCompanies)) {
+        return false
+      }
       return true
     })
-  }, [data.codingProblems, selectedDifficulties, selectedConfidences])
+  }, [
+    data.codingProblems,
+    selectedDifficulties,
+    selectedConfidences,
+    selectedCompanies,
+  ])
 
   const overallPct = useMemo(() => {
     const score = data.codingProblems.reduce(
@@ -185,9 +231,16 @@ export function CodingTab() {
     return weightedReadinessPct(score, data.codingProblems.length)
   }, [data.codingProblems])
 
+  const companyScopedProblems = useMemo(() => {
+    if (selectedCompanies.length === 0) return data.codingProblems
+    return data.codingProblems.filter((p) =>
+      problemHasCompany(p, selectedCompanies),
+    )
+  }, [data.codingProblems, selectedCompanies])
+
   const suggestions = useMemo(
-    () => suggestCodingProblems(data.codingProblems, 3),
-    [data.codingProblems],
+    () => suggestCodingProblems(companyScopedProblems, 3),
+    [companyScopedProblems],
   )
 
   const groups = useMemo(() => {
@@ -199,13 +252,19 @@ export function CodingTab() {
     }
     for (const list of map.values()) {
       list.sort((a, b) => {
+        if (selectedCompanies.length > 0) {
+          const fd =
+            maxCompanyFrequency(b, selectedCompanies) -
+            maxCompanyFrequency(a, selectedCompanies)
+          if (fd !== 0) return fd
+        }
         const rd = difficultyRank(a.difficulty) - difficultyRank(b.difficulty)
         if (rd !== 0) return rd
         return a.lcNumber - b.lcNumber
       })
     }
     return [...map.entries()].sort(([a], [b]) => compareTopicPatterns(a, b))
-  }, [filteredProblems])
+  }, [filteredProblems, selectedCompanies])
 
   function addProblem(e: React.FormEvent) {
     e.preventDefault()
@@ -247,15 +306,30 @@ export function CodingTab() {
             className="app-link font-medium"
           >
             NeetCode 150
+          </a>
+          {' '}plus{' '}
+          <a
+            href="https://github.com/snehasishroy/leetcode-companywise-interview-questions"
+            target="_blank"
+            rel="noreferrer"
+            className="app-link font-medium"
+          >
+            DoorDash and Ripple
           </a>{' '}
-          — {data.codingProblems.length} problems in roadmap order (easy → hard
-          within each topic). Overall {overallPct}% ready. Tap the status badge
-          to cycle confidence; log attempts and notes on each row.
+          interview lists — {data.codingProblems.length} problems. Overall{' '}
+          {overallPct}% ready. Filter by company to sort by how often the
+          problem shows up. Tap the status badge to cycle confidence; log
+          attempts and notes on each row.
         </p>
       </div>
 
       <SuggestedProblemsSection
         suggestions={suggestions}
+        scopeLabel={
+          selectedCompanies.length === 0
+            ? null
+            : selectedCompanies.join(' / ')
+        }
         onLogAttempt={(p) =>
           updateCodingProblem(p.id, {
             practiceCount: p.practiceCount + 1,
@@ -275,6 +349,7 @@ export function CodingTab() {
             onClick={() => {
               setSelectedDifficulties([])
               setSelectedConfidences([])
+              setSelectedCompanies([])
             }}
             disabled={!hasActiveFilters}
           >
@@ -282,7 +357,7 @@ export function CodingTab() {
           </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <p className="app-section-label">Difficulty</p>
             <p className="mt-1 text-xs text-teal-800/80 dark:text-teal-300/80">
@@ -334,6 +409,32 @@ export function CodingTab() {
               ))}
             </div>
           </div>
+
+          <div>
+            <p className="app-section-label">Company</p>
+            <p className="mt-1 text-xs text-teal-800/80 dark:text-teal-300/80">
+              {selectedCompanies.length === 0
+                ? 'All companies'
+                : 'Matching any selected company'}
+            </p>
+            <div
+              className="mt-2 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filter by company"
+            >
+              {CODING_COMPANIES.map((company) => (
+                <FilterChip
+                  key={company}
+                  pressed={selectedCompanies.includes(company)}
+                  onClick={() =>
+                    setSelectedCompanies((prev) => toggleFilter(prev, company))
+                  }
+                >
+                  {company}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
         </div>
 
         <p className="text-xs text-teal-800/85 dark:text-teal-300/85">
@@ -355,6 +456,7 @@ export function CodingTab() {
               onClick={() => {
                 setSelectedDifficulties([])
                 setSelectedConfidences([])
+                setSelectedCompanies([])
               }}
             >
               Clear filters
@@ -435,6 +537,7 @@ export function CodingTab() {
                           >
                             {p.difficulty}
                           </span>
+                          <CompanyTags problem={p} />
                           <button
                             type="button"
                             className={confidenceBadgeClass(p.confidence)}
@@ -618,9 +721,11 @@ export function CodingTab() {
 
 function SuggestedProblemsSection({
   suggestions,
+  scopeLabel,
   onLogAttempt,
 }: {
   suggestions: CodingSuggestion[]
+  scopeLabel: string | null
   onLogAttempt: (p: CodingProblem) => void
 }) {
   return (
@@ -630,7 +735,9 @@ function SuggestedProblemsSection({
           Suggested for you
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-teal-800/90 dark:text-teal-300/85">
-          Up next on the roadmap, plus problems that need another pass.
+          {scopeLabel
+            ? `Up next in the ${scopeLabel} list, plus problems that need another pass.`
+            : 'Up next on the roadmap, plus problems that need another pass.'}
         </p>
       </div>
 
@@ -663,6 +770,7 @@ function SuggestedProblemsSection({
                 >
                   {p.difficulty}
                 </span>
+                <CompanyTags problem={p} />
                 <span
                   className={confidenceBadgeClass(p.confidence, false)}
                   aria-label={`Confidence: ${confidenceLabel(p.confidence)}`}
