@@ -1,7 +1,7 @@
 import type { CodingProblem, Difficulty } from '../types'
 import { neetCodeCatalogId } from '../utils/mergeNeetCode150'
 
-export const CODING_COMPANIES = ['DoorDash', 'Ripple'] as const
+export const CODING_COMPANIES = ['DoorDash', 'Ripple', 'Rakuten'] as const
 export type CodingCompany = (typeof CODING_COMPANIES)[number]
 
 export type CompanyQuestionSeed = {
@@ -16,7 +16,7 @@ export type CompanyQuestionSeed = {
   pattern?: string
 }
 
-/** DoorDash + Ripple lists from snehasishroy/leetcode-companywise-interview-questions (all.csv, Jul 2026). */
+/** Company lists from snehasishroy/leetcode-companywise-interview-questions (all.csv, Jul 2026). */
 export const COMPANY_QUESTION_SEEDS: CompanyQuestionSeed[] = [
   // DoorDash
   { company: 'DoorDash', lcNumber: 1, title: 'Two Sum', difficulty: 'Easy', lcSlug: 'two-sum', frequency: 50 },
@@ -105,6 +105,14 @@ export const COMPANY_QUESTION_SEEDS: CompanyQuestionSeed[] = [
   { company: 'Ripple', lcNumber: 224, title: 'Basic Calculator', difficulty: 'Hard', lcSlug: 'basic-calculator', frequency: 87.5, pattern: 'Stack' },
   { company: 'Ripple', lcNumber: 853, title: 'Car Fleet', difficulty: 'Medium', lcSlug: 'car-fleet', frequency: 87.5 },
   { company: 'Ripple', lcNumber: 1047, title: 'Remove All Adjacent Duplicates In String', difficulty: 'Easy', lcSlug: 'remove-all-adjacent-duplicates-in-string', frequency: 87.5, pattern: 'Stack' },
+  // Rakuten
+  { company: 'Rakuten', lcNumber: 146, title: 'LRU Cache', difficulty: 'Medium', lcSlug: 'lru-cache', frequency: 87.5 },
+  { company: 'Rakuten', lcNumber: 48, title: 'Rotate Image', difficulty: 'Medium', lcSlug: 'rotate-image', frequency: 87.5 },
+  { company: 'Rakuten', lcNumber: 443, title: 'String Compression', difficulty: 'Medium', lcSlug: 'string-compression', frequency: 87.5 },
+  { company: 'Rakuten', lcNumber: 994, title: 'Rotting Oranges', difficulty: 'Medium', lcSlug: 'rotting-oranges', frequency: 87.5 },
+  { company: 'Rakuten', lcNumber: 40, title: 'Combination Sum II', difficulty: 'Medium', lcSlug: 'combination-sum-ii', frequency: 100 },
+  { company: 'Rakuten', lcNumber: 70, title: 'Climbing Stairs', difficulty: 'Easy', lcSlug: 'climbing-stairs', frequency: 87.5 },
+  { company: 'Rakuten', lcNumber: 42, title: 'Trapping Rain Water', difficulty: 'Hard', lcSlug: 'trapping-rain-water', frequency: 87.5 },
 ]
 
 export function formatFrequencyPct(n: number): string {

@@ -314,7 +314,7 @@ export function CodingTab() {
             rel="noreferrer"
             className="app-link font-medium"
           >
-            DoorDash and Ripple
+            DoorDash, Ripple, and Rakuten
           </a>{' '}
           interview lists — {data.codingProblems.length} problems. Overall{' '}
           {overallPct}% ready. Filter by company to sort by how often the
